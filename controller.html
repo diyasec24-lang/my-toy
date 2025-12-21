@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controller Panel</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -98,6 +99,12 @@
             box-shadow: 0 5px 20px rgba(186, 85, 211, 0.5);
         }
         
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .status {
             text-align: center;
             margin-bottom: 20px;
@@ -116,6 +123,12 @@
             background: rgba(244, 67, 54, 0.3);
             color: #e57373;
             border: 1px solid #e57373;
+        }
+        
+        .status.connecting {
+            background: rgba(33, 150, 243, 0.3);
+            color: #64b5f6;
+            border: 1px solid #64b5f6;
         }
         
         .status.expired {
@@ -263,7 +276,7 @@
             <label class="input-label">Enter Receiver ID</label>
             <div class="input-group">
                 <input type="text" id="roomIdInput" placeholder="rx_xxxxxxxxx">
-                <button class="connect-btn" onclick="connectToRoom()">Connect</button>
+                <button class="connect-btn" id="connectBtn" onclick="connectToRoom()">Connect</button>
             </div>
         </div>
         
@@ -291,66 +304,93 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDxnN8VxQXH0XS_7VGNqZPGx4Z8YFqZKQM",
-            authDomain: "control-app-demo.firebaseapp.com",
-            databaseURL: "https://control-app-demo-default-rtdb.firebaseio.com",
-            projectId: "control-app-demo",
-            storageBucket: "control-app-demo.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        
-        let currentRoom = null;
+    <script>
+        let peer;
+        let conn;
         let isConnected = false;
         let timeRemaining = 0;
         let timerInterval;
         
-        window.connectToRoom = function() {
-            const roomId = document.getElementById('roomIdInput').value.trim();
-            if (roomId) {
-                currentRoom = roomId;
-                
-                // Announce controller connection
-                set(ref(database, `rooms/${currentRoom}/controller`), true);
-                
-                document.getElementById('status').textContent = '✅ Connected to Receiver';
+        const slider = document.getElementById('intensitySlider');
+        const valueDisplay = document.getElementById('valueDisplay');
+        
+        // Initialize PeerJS
+        peer = new Peer({
+            host: 'peerjs-server.herokuapp.com',
+            secure: true,
+            port: 443,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        });
+        
+        peer.on('open', function(id) {
+            console.log('Controller peer ID:', id);
+        });
+        
+        peer.on('error', function(err) {
+            console.error('PeerJS error:', err);
+        });
+        
+        function connectToRoom() {
+            const receiverId = document.getElementById('roomIdInput').value.trim();
+            
+            if (!receiverId) {
+                alert('Please enter a valid Receiver ID');
+                return;
+            }
+            
+            if (conn) {
+                conn.close();
+            }
+            
+            document.getElementById('status').textContent = '⏳ Connecting to receiver...';
+            document.getElementById('status').className = 'status connecting';
+            document.getElementById('connectBtn').disabled = true;
+            
+            conn = peer.connect(receiverId);
+            
+            conn.on('open', function() {
+                isConnected = true;
+                document.getElementById('status').textContent = '✅ Connected to Receiver!';
                 document.getElementById('status').className = 'status connected';
                 document.getElementById('sliderContainer').classList.add('active');
                 document.getElementById('patternButtons').classList.add('active');
-                isConnected = true;
-                
-                // Listen for time updates
-                onValue(ref(database, `rooms/${currentRoom}/timeRemaining`), (snapshot) => {
-                    const time = snapshot.val();
-                    if (time !== null) {
-                        timeRemaining = time;
-                        updateTimerDisplay();
-                        
-                        if (timeRemaining <= 0) {
-                            endSession();
-                        }
-                    }
-                });
-                
-                // Listen for session end
-                onValue(ref(database, `rooms/${currentRoom}/sessionEnd`), (snapshot) => {
-                    if (snapshot.val()) {
+                document.getElementById('connectBtn').disabled = false;
+            });
+            
+            conn.on('data', function(data) {
+                if (data.type === 'time_update') {
+                    timeRemaining = data.timeRemaining;
+                    updateTimerDisplay();
+                    
+                    if (timeRemaining <= 0) {
                         endSession();
                     }
-                });
-                
-            } else {
-                alert('Please enter a valid Receiver ID');
-            }
-        };
+                } else if (data.type === 'session_end') {
+                    endSession();
+                }
+            });
+            
+            conn.on('close', function() {
+                isConnected = false;
+                document.getElementById('status').textContent = '⚠️ Connection closed';
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('sliderContainer').classList.remove('active');
+                document.getElementById('patternButtons').classList.remove('active');
+                document.getElementById('connectBtn').disabled = false;
+            });
+            
+            conn.on('error', function(err) {
+                console.error('Connection error:', err);
+                document.getElementById('status').textContent = '❌ Failed to connect - Check ID';
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('connectBtn').disabled = false;
+            });
+        }
         
         function updateTimerDisplay() {
             const minutes = Math.floor(timeRemaining / 60);
@@ -365,40 +405,42 @@
             document.getElementById('sliderContainer').classList.remove('active');
             document.getElementById('patternButtons').classList.remove('active');
             
-            const slider = document.getElementById('intensitySlider');
             slider.value = 0;
-            document.getElementById('valueDisplay').textContent = '0';
+            valueDisplay.textContent = '0';
             
             isConnected = false;
         }
         
-        const slider = document.getElementById('intensitySlider');
-        const valueDisplay = document.getElementById('valueDisplay');
-        
         slider.addEventListener('input', (e) => {
             const value = e.target.value;
             valueDisplay.textContent = value;
-            if (isConnected && timeRemaining > 0 && currentRoom) {
+            if (isConnected && timeRemaining > 0) {
                 sendValue(value);
             }
         });
         
         function sendValue(value) {
-            if (currentRoom) {
-                set(ref(database, `rooms/${currentRoom}/value`), parseInt(value));
+            if (conn && conn.open) {
+                conn.send({
+                    type: 'control',
+                    value: parseInt(value)
+                });
             }
         }
         
-        window.sendPattern = function(pattern) {
-            if (currentRoom && isConnected && timeRemaining > 0) {
-                set(ref(database, `rooms/${currentRoom}/pattern`), pattern);
+        function sendPattern(pattern) {
+            if (conn && conn.open && isConnected && timeRemaining > 0) {
+                conn.send({
+                    type: 'pattern',
+                    pattern: pattern
+                });
                 
                 if (pattern === 'stop') {
                     slider.value = 0;
                     valueDisplay.textContent = '0';
                 }
             }
-        };
+        }
     </script>
 </body>
 </html>
