@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receiver Dashboard</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -76,6 +77,7 @@
             text-align: center;
             letter-spacing: 2px;
             border: 1px solid #ba55d3;
+            word-break: break-all;
         }
         
         .copy-btn {
@@ -164,6 +166,12 @@
             background: rgba(251, 140, 0, 0.3);
             color: #ffb74d;
             border: 1px solid #ffb74d;
+        }
+        
+        .status.ready {
+            background: rgba(33, 150, 243, 0.3);
+            color: #64b5f6;
+            border: 1px solid #64b5f6;
         }
         
         .timer-display {
@@ -264,7 +272,7 @@
             <div class="id-display">
                 <div style="flex: 1;">
                     <div class="id-label">Your Connection ID</div>
-                    <div class="id-value" id="roomIdDisplay">Loading...</div>
+                    <div class="id-value" id="roomIdDisplay">Generating ID...</div>
                 </div>
                 <button class="copy-btn" onclick="copyRoomId()">📋 Copy ID</button>
             </div>
@@ -278,7 +286,7 @@
             </div>
         </div>
         
-        <div class="status waiting" id="status">⏳ Waiting for controller connection...</div>
+        <div class="status waiting" id="status">⏳ Initializing connection...</div>
         
         <div class="timer-display" id="timerDisplay">Time Remaining: --:--</div>
         
@@ -300,26 +308,10 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, onValue, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDxnN8VxQXH0XS_7VGNqZPGx4Z8YFqZKQM",
-            authDomain: "control-app-demo.firebaseapp.com",
-            databaseURL: "https://control-app-demo-default-rtdb.firebaseio.com",
-            projectId: "control-app-demo",
-            storageBucket: "control-app-demo.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        
-        const roomId = 'rx_' + Math.random().toString(36).substr(2, 9);
-        document.getElementById('roomIdDisplay').textContent = roomId;
-        
+    <script>
+        let peer;
+        let conn;
+        let myId;
         let currentTimeLimit = 30;
         let timeRemaining = 0;
         let timerInterval;
@@ -333,16 +325,85 @@
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
         
-        window.copyRoomId = function() {
-            navigator.clipboard.writeText(roomId);
-            const btn = event.target;
-            btn.textContent = '✓ Copied!';
-            setTimeout(() => {
-                btn.textContent = '📋 Copy ID';
-            }, 2000);
-        };
+        // Initialize PeerJS
+        function initPeer() {
+            const randomId = 'rx_' + Math.random().toString(36).substr(2, 9);
+            peer = new Peer(randomId, {
+                host: 'peerjs-server.herokuapp.com',
+                secure: true,
+                port: 443,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
+            
+            peer.on('open', function(id) {
+                myId = id;
+                document.getElementById('roomIdDisplay').textContent = id;
+                document.getElementById('status').textContent = '✅ Ready - Waiting for controller';
+                document.getElementById('status').className = 'status ready';
+            });
+            
+            peer.on('connection', function(connection) {
+                conn = connection;
+                controllerConnected = true;
+                
+                document.getElementById('status').textContent = '✅ Controller connected!';
+                document.getElementById('status').className = 'status connected';
+                
+                startTimer();
+                
+                // Send time remaining to controller
+                conn.send({
+                    type: 'time_update',
+                    timeRemaining: timeRemaining
+                });
+                
+                conn.on('data', function(data) {
+                    handleControlData(data);
+                });
+                
+                conn.on('close', function() {
+                    controllerConnected = false;
+                    document.getElementById('status').textContent = '⚠️ Controller disconnected';
+                    document.getElementById('status').className = 'status waiting';
+                });
+            });
+            
+            peer.on('error', function(err) {
+                console.error('PeerJS error:', err);
+                document.getElementById('status').textContent = '❌ Connection error - Retrying...';
+                document.getElementById('status').className = 'status waiting';
+                setTimeout(initPeer, 3000);
+            });
+        }
         
-        window.setTimeLimit = function() {
+        function handleControlData(data) {
+            if (timeRemaining <= 0) return;
+            
+            if (data.type === 'control') {
+                updateValue(data.value);
+            } else if (data.type === 'pattern') {
+                executePattern(data.pattern);
+            }
+        }
+        
+        function copyRoomId() {
+            if (myId) {
+                navigator.clipboard.writeText(myId).then(() => {
+                    const btn = event.target;
+                    btn.textContent = '✓ Copied!';
+                    setTimeout(() => {
+                        btn.textContent = '📋 Copy ID';
+                    }, 2000);
+                });
+            }
+        }
+        
+        function setTimeLimit() {
             const limit = parseInt(document.getElementById('timeLimit').value);
             if (limit >= 1 && limit <= 120) {
                 currentTimeLimit = limit;
@@ -352,10 +413,15 @@
                 }
                 alert(`Time limit set to ${limit} minutes`);
             }
-        };
+        }
         
         function sendTimeUpdate() {
-            set(ref(database, `rooms/${roomId}/timeRemaining`), timeRemaining);
+            if (conn && conn.open) {
+                conn.send({
+                    type: 'time_update',
+                    timeRemaining: timeRemaining
+                });
+            }
         }
         
         function startTimer() {
@@ -367,7 +433,10 @@
             timerInterval = setInterval(() => {
                 timeRemaining--;
                 updateTimerDisplay();
-                sendTimeUpdate();
+                
+                if (timeRemaining % 5 === 0) {
+                    sendTimeUpdate();
+                }
                 
                 if (timeRemaining <= 0) {
                     clearInterval(timerInterval);
@@ -384,38 +453,14 @@
         }
         
         function endSession() {
-            set(ref(database, `rooms/${roomId}/sessionEnd`), true);
+            if (conn && conn.open) {
+                conn.send({ type: 'session_end' });
+            }
             updateValue(0);
             document.getElementById('status').textContent = '⏱️ Session time expired';
             document.getElementById('status').className = 'status waiting';
             controllerConnected = false;
         }
-        
-        // Listen for controller connection
-        onValue(ref(database, `rooms/${roomId}/controller`), (snapshot) => {
-            if (snapshot.val()) {
-                controllerConnected = true;
-                document.getElementById('status').textContent = '✅ Controller connected';
-                document.getElementById('status').className = 'status connected';
-                startTimer();
-            }
-        });
-        
-        // Listen for control values
-        onValue(ref(database, `rooms/${roomId}/value`), (snapshot) => {
-            const data = snapshot.val();
-            if (data !== null && timeRemaining > 0) {
-                updateValue(data);
-            }
-        });
-        
-        // Listen for patterns
-        onValue(ref(database, `rooms/${roomId}/pattern`), (snapshot) => {
-            const pattern = snapshot.val();
-            if (pattern && timeRemaining > 0) {
-                executePattern(pattern);
-            }
-        });
         
         function updateValue(value) {
             dataPoints.push(value);
@@ -513,6 +558,9 @@
             canvas.height = canvas.offsetHeight;
             drawChart();
         });
+        
+        // Initialize on load
+        initPeer();
     </script>
 </body>
 </html>
