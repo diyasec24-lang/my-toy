@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            background: #1a1a2e;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(186, 85, 211, 0.3);
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid #ba55d3;
+        }
+        
+        h1 {
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        
+        .connect-section {
+            background: #2a2a3e;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #ba55d3;
+        }
+        
+        .input-label {
+            color: #ba55d3;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 20px;
+            background: #0a0a0f;
+            border: 2px solid #ba55d3;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #9370db;
+            box-shadow: 0 0 10px rgba(186, 85, 211, 0.3);
+        }
+        
+        .connect-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(186, 85, 211, 0.5);
+        }
+        
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: rgba(46, 125, 50, 0.3);
+            color: #81c784;
+            border: 1px solid #81c784;
+        }
+        
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+            color: #e57373;
+            border: 1px solid #e57373;
+        }
+        
+        .status.expired {
+            background: rgba(251, 140, 0, 0.3);
+            color: #ffb74d;
+            border: 1px solid #ffb74d;
+        }
+        
+        .timer-display {
+            text-align: center;
+            font-size: 24px;
+            color: #ba55d3;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2a2a3e;
+            border-radius: 10px;
+            border: 1px solid #ba55d3;
+        }
+        
+        .slider-container {
+            margin: 30px 0;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .slider-container.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .label-text {
+            color: #9370db;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .value-display {
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #2a2a3e;
+            outline: none;
+            -webkit-appearance: none;
+            border: 1px solid #ba55d3;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(186, 85, 211, 0.5);
+            border: 2px solid #0a0a0f;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            cursor: pointer;
+            border: 2px solid #0a0a0f;
+            box-shadow: 0 3px 10px rgba(186, 85, 211, 0.5);
+        }
+        
+        .pattern-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 30px;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .pattern-buttons.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .pattern-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .pattern-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(186, 85, 211, 0.5);
+            border-color: #e0e0e0;
+        }
+        
+        .pattern-btn:active {
+            transform: translateY(0);
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(186, 85, 211, 0.1);
+            border-radius: 10px;
+            font-size: 13px;
+            color: #9370db;
+            text-align: center;
+            border: 1px solid #ba55d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Control Panel</h1>
+        
+        <div class="connect-section">
+            <label class="input-label">Enter Receiver ID</label>
+            <div class="input-group">
+                <input type="text" id="roomIdInput" placeholder="rx_xxxxxxxxx">
+                <button class="connect-btn" onclick="connectToRoom()">Connect</button>
+            </div>
+        </div>
+        
+        <div class="status disconnected" id="status">⚠️ Not Connected</div>
+        
+        <div class="timer-display" id="timerDisplay">Time Remaining: --:--</div>
+        
+        <div class="slider-container" id="sliderContainer">
+            <div class="slider-label">
+                <span class="label-text">Intensity Level</span>
+                <span class="value-display" id="valueDisplay">0</span>
+            </div>
+            <input type="range" id="intensitySlider" min="0" max="10" value="0" step="1">
+        </div>
+        
+        <div class="pattern-buttons" id="patternButtons">
+            <button class="pattern-btn" onclick="sendPattern('pulse')">⚡ Rapid Pulse</button>
+            <button class="pattern-btn" onclick="sendPattern('wave')">🌊 Wave</button>
+            <button class="pattern-btn" onclick="sendPattern('random')">🎲 Random</button>
+            <button class="pattern-btn" onclick="sendPattern('stop')">⏹️ Stop</button>
+        </div>
+        
+        <div class="info">
+            ℹ️ Get the connection ID from the receiver to establish control
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let currentRoom = null;
+        let reconnectInterval;
+        let isConnected = false;
+        let timeRemaining = 0;
+        let timerInterval;
+        
+        function connect() {
+            ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/');
+            
+            ws.onopen = () => {
+                console.log('Connected to server');
+                if (currentRoom) {
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        room: currentRoom
+                    }));
+                    
+                    ws.send(JSON.stringify({
+                        type: 'controller_connected',
+                        room: currentRoom
+                    }));
+                    
+                    document.getElementById('status').textContent = '✅ Connected to Receiver';
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('sliderContainer').classList.add('active');
+                    document.getElementById('patternButtons').classList.add('active');
+                    isConnected = true;
+                }
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'time_update') {
+                        timeRemaining = data.timeRemaining;
+                        updateTimerDisplay();
+                        startTimerCountdown();
+                    } else if (data.type === 'session_end') {
+                        endSession();
+                    }
+                } catch (e) {
+                    console.error('Error processing data:', e);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected');
+                if (isConnected) {
+                    document.getElementById('status').textContent = '⚠️ Connection Lost - Reconnecting...';
+                    document.getElementById('status').className = 'status disconnected';
+                }
+                clearInterval(reconnectInterval);
+                reconnectInterval = setTimeout(connect, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('Connection error:', error);
+            };
+        }
+        
+        function connectToRoom() {
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            if (roomId) {
+                currentRoom = roomId;
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+                connect();
+            } else {
+                alert('Please enter a valid Receiver ID');
+            }
+        }
+        
+        function startTimerCountdown() {
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    endSession();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `Time Remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function endSession() {
+            document.getElementById('status').textContent = '⏱️ Session Time Expired';
+            document.getElementById('status').className = 'status expired';
+            document.getElementById('sliderContainer').classList.remove('active');
+            document.getElementById('patternButtons').classList.remove('active');
+            
+            const slider = document.getElementById('intensitySlider');
+            slider.value = 0;
+            document.getElementById('valueDisplay').textContent = '0';
+            
+            isConnected = false;
+        }
+        
+        const slider = document.getElementById('intensitySlider');
+        const valueDisplay = document.getElementById('valueDisplay');
+        
+        slider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            valueDisplay.textContent = value;
+            if (isConnected && timeRemaining > 0) {
+                sendValue(value);
+            }
+        });
+        
+        function sendValue(value) {
+            if (ws && ws.readyState === WebSocket.OPEN && currentRoom) {
+                ws.send(JSON.stringify({
+                    type: 'control',
+                    room: currentRoom,
+                    value: parseInt(value),
+                    timestamp: Date.now()
+                }));
+            }
+        }
+        
+        function sendPattern(pattern) {
+            if (ws && ws.readyState === WebSocket.OPEN && currentRoom && isConnected && timeRemaining > 0) {
+                ws.send(JSON.stringify({
+                    type: 'pattern',
+                    room: currentRoom,
+                    pattern: pattern,
+                    timestamp: Date.now()
+                }));
+                
+                if (pattern === 'stop') {
+                    slider.value = 0;
+                    valueDisplay.textContent = '0';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
