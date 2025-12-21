@@ -300,11 +300,26 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxnN8VxQXH0XS_7VGNqZPGx4Z8YFqZKQM",
+            authDomain: "control-app-demo.firebaseapp.com",
+            databaseURL: "https://control-app-demo-default-rtdb.firebaseio.com",
+            projectId: "control-app-demo",
+            storageBucket: "control-app-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
         const roomId = 'rx_' + Math.random().toString(36).substr(2, 9);
         document.getElementById('roomIdDisplay').textContent = roomId;
         
-        let ws;
         let currentTimeLimit = 30;
         let timeRemaining = 0;
         let timerInterval;
@@ -318,16 +333,16 @@
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
         
-        function copyRoomId() {
+        window.copyRoomId = function() {
             navigator.clipboard.writeText(roomId);
             const btn = event.target;
             btn.textContent = '✓ Copied!';
             setTimeout(() => {
                 btn.textContent = '📋 Copy ID';
             }, 2000);
-        }
+        };
         
-        function setTimeLimit() {
+        window.setTimeLimit = function() {
             const limit = parseInt(document.getElementById('timeLimit').value);
             if (limit >= 1 && limit <= 120) {
                 currentTimeLimit = limit;
@@ -337,26 +352,22 @@
                 }
                 alert(`Time limit set to ${limit} minutes`);
             }
-        }
+        };
         
         function sendTimeUpdate() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'time_update',
-                    room: roomId,
-                    timeRemaining: timeRemaining
-                }));
-            }
+            set(ref(database, `rooms/${roomId}/timeRemaining`), timeRemaining);
         }
         
         function startTimer() {
             clearInterval(timerInterval);
             timeRemaining = currentTimeLimit * 60;
             updateTimerDisplay();
+            sendTimeUpdate();
             
             timerInterval = setInterval(() => {
                 timeRemaining--;
                 updateTimerDisplay();
+                sendTimeUpdate();
                 
                 if (timeRemaining <= 0) {
                     clearInterval(timerInterval);
@@ -373,58 +384,38 @@
         }
         
         function endSession() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'session_end',
-                    room: roomId
-                }));
-            }
+            set(ref(database, `rooms/${roomId}/sessionEnd`), true);
             updateValue(0);
             document.getElementById('status').textContent = '⏱️ Session time expired';
             document.getElementById('status').className = 'status waiting';
             controllerConnected = false;
         }
         
-        function connect() {
-            ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/');
-            
-            ws.onopen = () => {
-                console.log('Connected to server');
-                ws.send(JSON.stringify({
-                    type: 'join',
-                    room: roomId
-                }));
-            };
-            
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'controller_connected') {
-                        controllerConnected = true;
-                        document.getElementById('status').textContent = '✅ Controller connected';
-                        document.getElementById('status').className = 'status connected';
-                        startTimer();
-                        sendTimeUpdate();
-                    } else if (data.type === 'control') {
-                        if (timeRemaining > 0) {
-                            updateValue(data.value);
-                        }
-                    } else if (data.type === 'pattern') {
-                        if (timeRemaining > 0) {
-                            executePattern(data.pattern);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error processing data:', e);
-                }
-            };
-            
-            ws.onclose = () => {
-                console.log('Disconnected');
-                setTimeout(connect, 3000);
-            };
-        }
+        // Listen for controller connection
+        onValue(ref(database, `rooms/${roomId}/controller`), (snapshot) => {
+            if (snapshot.val()) {
+                controllerConnected = true;
+                document.getElementById('status').textContent = '✅ Controller connected';
+                document.getElementById('status').className = 'status connected';
+                startTimer();
+            }
+        });
+        
+        // Listen for control values
+        onValue(ref(database, `rooms/${roomId}/value`), (snapshot) => {
+            const data = snapshot.val();
+            if (data !== null && timeRemaining > 0) {
+                updateValue(data);
+            }
+        });
+        
+        // Listen for patterns
+        onValue(ref(database, `rooms/${roomId}/pattern`), (snapshot) => {
+            const pattern = snapshot.val();
+            if (pattern && timeRemaining > 0) {
+                executePattern(pattern);
+            }
+        });
         
         function updateValue(value) {
             dataPoints.push(value);
@@ -517,8 +508,6 @@
             }
         }
         
-        connect();
-        
         window.addEventListener('resize', () => {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
@@ -526,4 +515,4 @@
         });
     </script>
 </body>
-          </html>
+</html>
