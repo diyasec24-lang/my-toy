@@ -291,96 +291,66 @@
         </div>
     </div>
 
-    <script>
-        let ws;
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxnN8VxQXH0XS_7VGNqZPGx4Z8YFqZKQM",
+            authDomain: "control-app-demo.firebaseapp.com",
+            databaseURL: "https://control-app-demo-default-rtdb.firebaseio.com",
+            projectId: "control-app-demo",
+            storageBucket: "control-app-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
         let currentRoom = null;
-        let reconnectInterval;
         let isConnected = false;
         let timeRemaining = 0;
         let timerInterval;
         
-        function connect() {
-            ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/');
-            
-            ws.onopen = () => {
-                console.log('Connected to server');
-                if (currentRoom) {
-                    ws.send(JSON.stringify({
-                        type: 'join',
-                        room: currentRoom
-                    }));
-                    
-                    ws.send(JSON.stringify({
-                        type: 'controller_connected',
-                        room: currentRoom
-                    }));
-                    
-                    document.getElementById('status').textContent = '✅ Connected to Receiver';
-                    document.getElementById('status').className = 'status connected';
-                    document.getElementById('sliderContainer').classList.add('active');
-                    document.getElementById('patternButtons').classList.add('active');
-                    isConnected = true;
-                }
-            };
-            
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'time_update') {
-                        timeRemaining = data.timeRemaining;
-                        updateTimerDisplay();
-                        startTimerCountdown();
-                    } else if (data.type === 'session_end') {
-                        endSession();
-                    }
-                } catch (e) {
-                    console.error('Error processing data:', e);
-                }
-            };
-            
-            ws.onclose = () => {
-                console.log('Disconnected');
-                if (isConnected) {
-                    document.getElementById('status').textContent = '⚠️ Connection Lost - Reconnecting...';
-                    document.getElementById('status').className = 'status disconnected';
-                }
-                clearInterval(reconnectInterval);
-                reconnectInterval = setTimeout(connect, 3000);
-            };
-            
-            ws.onerror = (error) => {
-                console.error('Connection error:', error);
-            };
-        }
-        
-        function connectToRoom() {
+        window.connectToRoom = function() {
             const roomId = document.getElementById('roomIdInput').value.trim();
             if (roomId) {
                 currentRoom = roomId;
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.close();
-                }
-                connect();
+                
+                // Announce controller connection
+                set(ref(database, `rooms/${currentRoom}/controller`), true);
+                
+                document.getElementById('status').textContent = '✅ Connected to Receiver';
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('sliderContainer').classList.add('active');
+                document.getElementById('patternButtons').classList.add('active');
+                isConnected = true;
+                
+                // Listen for time updates
+                onValue(ref(database, `rooms/${currentRoom}/timeRemaining`), (snapshot) => {
+                    const time = snapshot.val();
+                    if (time !== null) {
+                        timeRemaining = time;
+                        updateTimerDisplay();
+                        
+                        if (timeRemaining <= 0) {
+                            endSession();
+                        }
+                    }
+                });
+                
+                // Listen for session end
+                onValue(ref(database, `rooms/${currentRoom}/sessionEnd`), (snapshot) => {
+                    if (snapshot.val()) {
+                        endSession();
+                    }
+                });
+                
             } else {
                 alert('Please enter a valid Receiver ID');
             }
-        }
-        
-        function startTimerCountdown() {
-            clearInterval(timerInterval);
-            updateTimerDisplay();
-            
-            timerInterval = setInterval(() => {
-                timeRemaining--;
-                updateTimerDisplay();
-                
-                if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
-                    endSession();
-                }
-            }, 1000);
-        }
+        };
         
         function updateTimerDisplay() {
             const minutes = Math.floor(timeRemaining / 60);
@@ -408,37 +378,27 @@
         slider.addEventListener('input', (e) => {
             const value = e.target.value;
             valueDisplay.textContent = value;
-            if (isConnected && timeRemaining > 0) {
+            if (isConnected && timeRemaining > 0 && currentRoom) {
                 sendValue(value);
             }
         });
         
         function sendValue(value) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentRoom) {
-                ws.send(JSON.stringify({
-                    type: 'control',
-                    room: currentRoom,
-                    value: parseInt(value),
-                    timestamp: Date.now()
-                }));
+            if (currentRoom) {
+                set(ref(database, `rooms/${currentRoom}/value`), parseInt(value));
             }
         }
         
-        function sendPattern(pattern) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentRoom && isConnected && timeRemaining > 0) {
-                ws.send(JSON.stringify({
-                    type: 'pattern',
-                    room: currentRoom,
-                    pattern: pattern,
-                    timestamp: Date.now()
-                }));
+        window.sendPattern = function(pattern) {
+            if (currentRoom && isConnected && timeRemaining > 0) {
+                set(ref(database, `rooms/${currentRoom}/pattern`), pattern);
                 
                 if (pattern === 'stop') {
                     slider.value = 0;
                     valueDisplay.textContent = '0';
                 }
             }
-        }
+        };
     </script>
 </body>
 </html>
