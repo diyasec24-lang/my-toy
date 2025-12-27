@@ -132,7 +132,7 @@
 
     <div class="card">
       <div class="card-header">
-        <span>Live Pulse Indicator</span>
+        <span>Live Pulse Curve</span>
         <span id="sessionLabel">No active session</span>
       </div>
       <canvas id="waveCanvas"></canvas>
@@ -159,7 +159,6 @@
   </div>
 
   <script>
-    // إعدادات Firebase الخاصة بك
     const firebaseConfig = {
       apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
       authDomain: "testapp-9b43c.firebaseapp.com",
@@ -172,7 +171,7 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();     // تأكد أن هذا السطر موجود قبل أي ref [web:99][web:105]
+    const db = firebase.database();
 
     const pulseRef         = db.ref("device/pulseLevel");
     const activeSessionRef = db.ref("device/activeSession");
@@ -193,6 +192,10 @@
     let lastPulseTs = Date.now();
     let pulseLevel  = 0;
 
+    // مصفوفة تاريخ القيم لتكوين المنحنى [web:114][web:121]
+    const history = [];
+    const MAX_POINTS = 60;
+
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
       canvas.width  = rect.width * window.devicePixelRatio;
@@ -202,49 +205,64 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // مؤشر خط أفقي يتحرك حسب قيمة النبض [web:78][web:94]
-    function drawLine() {
+    function valueToY(value, h) {
+      const margin = 20;
+      const usableHeight = h - margin * 2;
+      const ratio = value / 10;
+      return margin + usableHeight * ratio;
+    }
+
+    // رسم منحنى من history مع نقطة في النهاية [web:114][web:125]
+    function drawWave() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       ctx.clearRect(0, 0, w, h);
 
-      const margin = 20;
-      const usableHeight = h - margin * 2;
-      const ratio = pulseLevel / 10;
-      const y = margin + usableHeight * ratio;
+      if (history.length > 0) {
+        const startX = 10;
+        const stepX = (w - 30) / Math.max(history.length - 1, 1);
 
-      const startX = 10;
-      const endX   = w - 18;
+        ctx.beginPath();
+        history.forEach((val, index) => {
+          const x = startX + stepX * index;
+          const y = valueToY(val, h);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
 
-      ctx.beginPath();
-      ctx.moveTo(startX, y);
-      ctx.lineTo(endX, y);
-      ctx.strokeStyle = "#ec4899";
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-      ctx.stroke();
+        ctx.strokeStyle = "#ec4899";
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(endX, y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "#ec4899";
-      ctx.shadowColor = "rgba(236,72,153,0.9)";
-      ctx.shadowBlur = 12;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+        const lastIndex = history.length - 1;
+        const endX = startX + stepX * lastIndex;
+        const endY = valueToY(history[lastIndex], h);
 
-      requestAnimationFrame(drawLine);
+        ctx.beginPath();
+        ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ec4899";
+        ctx.shadowColor = "rgba(236,72,153,0.9)";
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      requestAnimationFrame(drawWave);
     }
-    requestAnimationFrame(drawLine);
+    requestAnimationFrame(drawWave);
 
-    // قراءة مستوى النبض
+    // تحديث History من Firebase [web:2][web:97]
     pulseRef.on("value", (snap) => {
       const val = snap.val() ?? 0;
       pulseLevel = Math.max(0, Math.min(10, Number(val)));
       pulseTextEl.textContent = pulseLevel.toFixed(0);
       lastPulseTs = Date.now();
+
+      history.push(pulseLevel);
+      if (history.length > MAX_POINTS) history.shift();
     });
 
-    // عد تنازلي من remainingSeconds
     activeSessionRef.on("value", (snap) => {
       const data = snap.val();
       if (!data) {
@@ -263,7 +281,6 @@
       remainingTextEl.textContent = `${m}:${s}`;
     });
 
-    // إنشاء جلسة جديدة باستخدام push() الصحيح [web:2][web:96][web:101]
     createBtn.addEventListener("click", async () => {
       const name = sessionNameInput.value.trim() || "Session";
       const minutes = parseInt(sessionMinutesInput.value, 10);
@@ -273,7 +290,7 @@
       }
 
       try {
-        const newRef = sessionsRef.push();   // يرجع Reference جديد بمفتاح فريد
+        const newRef = sessionsRef.push();
         const id = newRef.key;
         await newRef.set({
           id,
@@ -292,7 +309,6 @@
       }
     });
 
-    // حالة الاتصال
     setInterval(() => {
       const delta = Date.now() - lastPulseTs;
       if (delta > 6000) {
