@@ -61,7 +61,7 @@
       margin-bottom:10px;
     }
 
-    /* سلايدر عمودي حقيقي لأعلى/أسفل [web:21][web:24] */
+    /* سلايدر عمودي متدرج من زهري لأعلى إلى داكن لأسفل [web:21][web:92] */
     #pulseSlider {
       writing-mode: vertical-lr;
       direction: rtl;
@@ -72,7 +72,11 @@
       padding: 0;
     }
     #pulseSlider::-webkit-slider-runnable-track {
-      background: linear-gradient(#22c55e,#eab308,#ef4444);
+      background: linear-gradient(180deg, #ec4899 0%, #111827 100%);
+      border-radius: 999px;
+    }
+    #pulseSlider::-moz-range-track {
+      background: linear-gradient(180deg, #ec4899 0%, #111827 100%);
       border-radius: 999px;
     }
     #pulseSlider::-webkit-slider-thumb {
@@ -80,10 +84,17 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34,197,94,0.9);
+      background: #f9fafb;
+      box-shadow: 0 0 10px rgba(236,72,153,0.9);
     }
-    input[type=range] { accent-color:#22c55e; }
+    #pulseSlider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f9fafb;
+      box-shadow: 0 0 10px rgba(236,72,153,0.9);
+    }
+    input[type=range] { accent-color:#ec4899; }
 
     .level-display { margin-top:10px; font-size:0.9rem; }
 
@@ -197,17 +208,17 @@
   </div>
 
   <script>
-    // نفس الإعدادات في الصفحتين [web:1]
+    // إعدادات Firebase الخاصة بك
     const firebaseConfig = {
-    apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
-    authDomain: "testapp-9b43c.firebaseapp.com",
-    databaseURL: "https://testapp-9b43c-default-rtdb.firebaseio.com",
-    projectId: "testapp-9b43c",
-    storageBucket: "testapp-9b43c.firebasestorage.app",
-    messagingSenderId: "475089690708",
-    appId: "1:475089690708:web:f86d7436dfa74a96134dc1",
-    measurementId: "G-FZCZQGZD5Y"
-  };
+      apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
+      authDomain: "testapp-9b43c.firebaseapp.com",
+      databaseURL: "https://testapp-9b43c-default-rtdb.firebaseio.com",
+      projectId: "testapp-9b43c",
+      storageBucket: "testapp-9b43c.firebasestorage.app",
+      messagingSenderId: "475089690708",
+      appId: "1:475089690708:web:f86d7436dfa74a96134dc1",
+      measurementId: "G-FZCZQGZD5Y"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
