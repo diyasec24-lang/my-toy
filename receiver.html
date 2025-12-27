@@ -116,7 +116,6 @@
     .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
   </style>
 
-  <!-- Firebase compat SDK [web:1][web:20] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -192,7 +191,6 @@
     let lastPulseTs = Date.now();
     let pulseLevel  = 0;
 
-    // مصفوفة تاريخ القيم لتكوين المنحنى [web:114][web:121]
     const history = [];
     const MAX_POINTS = 60;
 
@@ -205,14 +203,15 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
+    // الآن القيمة الأكبر (10) تكون أعلى الشاشة
     function valueToY(value, h) {
       const margin = 20;
       const usableHeight = h - margin * 2;
-      const ratio = value / 10;
-      return margin + usableHeight * ratio;
+      const ratio = value / 10;          // 0..1
+      const yBottom = margin + usableHeight;    // قيمة 0 في الأسفل
+      return yBottom - usableHeight * ratio;    // 10 في الأعلى
     }
 
-    // رسم منحنى من history مع نقطة في النهاية [web:114][web:125]
     function drawWave() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
@@ -223,12 +222,21 @@
         const stepX = (w - 30) / Math.max(history.length - 1, 1);
 
         ctx.beginPath();
-        history.forEach((val, index) => {
-          const x = startX + stepX * index;
-          const y = valueToY(val, h);
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
+        for (let i = 0; i < history.length; i++) {
+          const x = startX + stepX * i;
+          const y = valueToY(history[i], h);
+
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            // منحنى Bezier بين النقطة السابقة والحالية لنعومة مماثلة للصورة [web:118]
+            const prevX = startX + stepX * (i - 1);
+            const prevY = valueToY(history[i - 1], h);
+            const cpX = (prevX + x) / 2;
+            ctx.quadraticCurveTo(prevX, prevY, cpX, (prevY + y) / 2);
+            ctx.quadraticCurveTo(cpX, (prevY + y) / 2, x, y);
+          }
+        }
 
         ctx.strokeStyle = "#ec4899";
         ctx.lineWidth = 3;
@@ -252,7 +260,6 @@
     }
     requestAnimationFrame(drawWave);
 
-    // تحديث History من Firebase [web:2][web:97]
     pulseRef.on("value", (snap) => {
       const val = snap.val() ?? 0;
       pulseLevel = Math.max(0, Math.min(10, Number(val)));
