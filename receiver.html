@@ -116,6 +116,7 @@
     .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
   </style>
 
+  <!-- Firebase compat SDK [web:1][web:20] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -137,7 +138,7 @@
       <canvas id="waveCanvas"></canvas>
       <div class="session-row">
         <span>Pulse Level: <strong id="pulseText">0</strong>/10</span>
-        <span>Remaining: <strong id="remainingText">00:00</strong></span>
+        <span>Session Timer: <strong id="remainingText">00:00</strong></span>
       </div>
     </div>
 
@@ -170,7 +171,7 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const db = firebase.database();                               // [web:2]
 
     const pulseRef         = db.ref("device/pulseLevel");
     const activeSessionRef = db.ref("device/activeSession");
@@ -191,8 +192,10 @@
     let lastPulseTs = Date.now();
     let pulseLevel  = 0;
 
+    // تاريخ القيم (يتحرك حتى مع ثبات القيمة) [web:114]
     const history = [];
-    const MAX_POINTS = 60;
+    const MAX_POINTS   = 80;
+    const SCROLL_SPEED = 0.25;   // يمكن تغييره لتسريع/تبطيء حركة الموجة
 
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
@@ -203,13 +206,75 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // الآن القيمة الأكبر (10) تكون أعلى الشاشة
+    // 0 في الأسفل – 10 في الأعلى
     function valueToY(value, h) {
       const margin = 20;
       const usableHeight = h - margin * 2;
-      const ratio = value / 10;          // 0..1
-      const yBottom = margin + usableHeight;    // قيمة 0 في الأسفل
-      return yBottom - usableHeight * ratio;    // 10 في الأعلى
+      const ratio = value / 10;
+      const yBottom = margin + usableHeight;
+      return yBottom - usableHeight * ratio;
+    }
+
+    function buildPoints() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      const startX = 10;
+      const endX   = w - 20;
+      const stepX  = (endX - startX) / Math.max(MAX_POINTS - 1, 1);
+
+      const points = [];
+      for (let i = 0; i < history.length; i++) {
+        const x = startX + stepX * i;
+        const y = valueToY(history[i], h);
+        points.push({ x, y });
+      }
+      return points;
+    }
+
+    // منحنى ناعم (Cardinal / Bezier مبسط) [web:131][web:141]
+    function drawSmoothCurve(points) {
+      if (points.length < 2) return;
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i === 0 ? i : i - 1];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+
+        const xc1 = (p0.x + p1.x) / 2;
+        const yc1 = (p0.y + p1.y) / 2;
+        const xc2 = (p1.x + p2.x) / 2;
+        const yc2 = (p1.y + p2.y) / 2;
+        const xc3 = (p2.x + p3.x) / 2;
+        const yc3 = (p2.y + p3.y) / 2;
+
+        const len1 = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+        const len2 = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const len3 = Math.hypot(p3.x - p2.x, p3.y - p2.y);
+
+        const k1 = len1 / (len1 + len2 || 1);
+        const k2 = len2 / (len2 + len3 || 1);
+
+        const xm1 = xc1 + (xc2 - xc1) * k1;
+        const ym1 = yc1 + (yc2 - yc1) * k1;
+        const xm2 = xc2 + (xc3 - xc2) * k2;
+        const ym2 = yc2 + (yc3 - yc2) * k2;
+
+        const ctrl1x = xm1 + (xc2 - xm1) * 0.5;
+        const ctrl1y = ym1 + (yc2 - ym1) * 0.5;
+        const ctrl2x = xm2 + (xc2 - xm2) * 0.5;
+        const ctrl2y = ym2 + (yc2 - ym2) * 0.5;
+
+        ctx.bezierCurveTo(ctrl1x, ctrl1y, ctrl2x, ctrl2y, p2.x, p2.y);
+      }
+
+      ctx.strokeStyle = "#ec4899";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.stroke();
     }
 
     function drawWave() {
@@ -217,38 +282,13 @@
       const h = canvas.height / window.devicePixelRatio;
       ctx.clearRect(0, 0, w, h);
 
-      if (history.length > 0) {
-        const startX = 10;
-        const stepX = (w - 30) / Math.max(history.length - 1, 1);
+      if (history.length > 1) {
+        const points = buildPoints();
+        drawSmoothCurve(points);
 
+        const last = points[points.length - 1];
         ctx.beginPath();
-        for (let i = 0; i < history.length; i++) {
-          const x = startX + stepX * i;
-          const y = valueToY(history[i], h);
-
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            // منحنى Bezier بين النقطة السابقة والحالية لنعومة مماثلة للصورة [web:118]
-            const prevX = startX + stepX * (i - 1);
-            const prevY = valueToY(history[i - 1], h);
-            const cpX = (prevX + x) / 2;
-            ctx.quadraticCurveTo(prevX, prevY, cpX, (prevY + y) / 2);
-            ctx.quadraticCurveTo(cpX, (prevY + y) / 2, x, y);
-          }
-        }
-
-        ctx.strokeStyle = "#ec4899";
-        ctx.lineWidth = 3;
-        ctx.lineCap = "round";
-        ctx.stroke();
-
-        const lastIndex = history.length - 1;
-        const endX = startX + stepX * lastIndex;
-        const endY = valueToY(history[lastIndex], h);
-
-        ctx.beginPath();
-        ctx.arc(endX, endY, 6, 0, Math.PI * 2);
+        ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = "#ec4899";
         ctx.shadowColor = "rgba(236,72,153,0.9)";
         ctx.shadowBlur = 12;
@@ -260,16 +300,21 @@
     }
     requestAnimationFrame(drawWave);
 
+    // قراءة مستوى النبض – لا نضيف مباشرة للـ history هنا
     pulseRef.on("value", (snap) => {
       const val = snap.val() ?? 0;
       pulseLevel = Math.max(0, Math.min(10, Number(val)));
       pulseTextEl.textContent = pulseLevel.toFixed(0);
       lastPulseTs = Date.now();
-
-      history.push(pulseLevel);
-      if (history.length > MAX_POINTS) history.shift();
     });
 
+    // حتى لو القيمة ثابتة، نضيفها باستمرار للـ history لتحريك الموجة [web:131]
+    setInterval(() => {
+      history.push(pulseLevel);
+      if (history.length > MAX_POINTS) history.shift();
+    }, 50 / SCROLL_SPEED);
+
+    // Session Timer من remainingSeconds
     activeSessionRef.on("value", (snap) => {
       const data = snap.val();
       if (!data) {
@@ -288,6 +333,7 @@
       remainingTextEl.textContent = `${m}:${s}`;
     });
 
+    // إنشاء جلسة جديدة [web:2]
     createBtn.addEventListener("click", async () => {
       const name = sessionNameInput.value.trim() || "Session";
       const minutes = parseInt(sessionMinutesInput.value, 10);
@@ -316,6 +362,7 @@
       }
     });
 
+    // حالة الاتصال
     setInterval(() => {
       const delta = Date.now() - lastPulseTs;
       if (delta > 6000) {
