@@ -5,9 +5,9 @@
   <title>Pulse Controller</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    * { box-sizing:border-box; margin:0; padding:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     body {
-      background: radial-gradient(circle at top, #111827, #020617);
+      background: radial-gradient(circle at top,#111827,#020617);
       color:#e5e7eb;
       min-height:100vh;
       display:flex;
@@ -29,11 +29,7 @@
       align-items:center;
       margin-bottom:16px;
     }
-    .title {
-      font-size:1.1rem;
-      font-weight:600;
-      letter-spacing:.04em;
-    }
+    .title { font-size:1.1rem; font-weight:600; letter-spacing:.04em; }
     .state-chip {
       font-size:0.75rem;
       padding:4px 10px;
@@ -42,161 +38,120 @@
       color:#93c5fd;
       border:1px solid rgba(147,197,253,0.5);
     }
-    .content {
-      display:flex;
-      gap:16px;
-    }
-    .left, .right { flex:1; }
 
-    .slider-wrap {
+    .row { display:flex; gap:16px; }
+
+    .slider-card {
+      flex:1;
       height:260px;
-      background:radial-gradient(circle at top,#020617,#020617);
       border-radius:16px;
       border:1px solid rgba(55,65,81,0.9);
+      background:radial-gradient(circle at top,#020617,#020617);
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
       padding:12px 4px;
     }
-
     .slider-label {
       font-size:0.8rem;
       text-transform:uppercase;
       letter-spacing:.12em;
       color:#9ca3af;
-      margin-bottom:8px;
-    }
-
-    .vertical-slider {
-      writing-mode: bt-lr;
-      -webkit-appearance: slider-vertical;
-      width: 36px;
-      height: 170px;
-      padding: 0;
-      border-radius:999px;
-      background: transparent;
-    }
-
-    input[type=range] {
-      accent-color:#22c55e;
-    }
-
-    .level-display {
-      margin-top:10px;
-      font-size:0.9rem;
-      color:#e5e7eb;
-    }
-
-    .timer-card {
-      background:rgba(15,23,42,0.9);
-      border-radius:14px;
-      padding:12px 12px 10px;
-      border:1px solid rgba(55,65,81,0.9);
       margin-bottom:10px;
     }
-    .timer-top {
+
+    /* سلايدر عمودي حقيقي [web:21][web:24] */
+    #pulseSlider {
+      -webkit-appearance: slider-vertical;
+      writing-mode: bt-lr;
+      width:36px;
+      height:170px;
+      background:transparent;
+      padding:0;
+    }
+    #pulseSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:#22c55e;
+      box-shadow:0 0 10px rgba(34,197,94,0.9);
+    }
+    #pulseSlider::-webkit-slider-runnable-track {
+      background:linear-gradient(#22c55e,#eab308,#ef4444);
+      border-radius:999px;
+    }
+    input[type=range] { accent-color:#22c55e; }
+
+    .level-display { margin-top:10px; font-size:0.9rem; }
+
+    .card {
+      flex:1;
+      border-radius:14px;
+      padding:12px;
+      border:1px solid rgba(55,65,81,0.9);
+      background:rgba(15,23,42,0.9);
+      margin-bottom:10px;
+    }
+    .card-header {
       display:flex;
       justify-content:space-between;
       align-items:center;
-      margin-bottom:8px;
       font-size:0.8rem;
       text-transform:uppercase;
       letter-spacing:.12em;
       color:#9ca3af;
+      margin-bottom:8px;
     }
     .countdown {
       font-size:1.8rem;
       font-weight:600;
     }
-    .session-name {
+    .session-meta {
       font-size:0.75rem;
       color:#9ca3af;
-      margin-top:3px;
+      margin-top:4px;
     }
-    .sessions-list {
-      max-height:160px;
-      overflow-y:auto;
+    .field-row {
+      display:flex;
+      gap:8px;
       margin-top:6px;
     }
-    .session-item {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:8px 9px;
-      margin-bottom:6px;
-      border-radius:10px;
+    input, button {
+      border-radius:999px;
+      border:1px solid rgba(75,85,99,0.9);
       background:rgba(15,23,42,0.9);
-      border:1px solid rgba(55,65,81,0.9);
-      font-size:0.78rem;
-      cursor:pointer;
-      transition:background .15s ease,border-color .15s ease,transform .05s ease;
-    }
-    .session-item:hover {
-      background:rgba(24,33,57,1);
-      border-color:#22c55e;
-      transform:translateY(-1px);
-    }
-    .session-item.active {
-      border-color:#22c55e;
-      box-shadow:0 0 8px rgba(34,197,94,0.6);
-    }
-    .session-item .name {
-      font-weight:500;
-      color:#e5e7eb;
-    }
-    .session-item .meta {
-      color:#9ca3af;
-      display:flex;
-      gap:10px;
-    }
-    .session-item .dot {
-      width:8px;
-      height:8px;
-      border-radius:999px;
-      margin-right:4px;
-    }
-    .dot.active { background:#22c55e; box-shadow:0 0 6px #22c55e; }
-    .dot.pending { background:#eab308; }
-    .dot.finished { background:#6b7280; }
-
-    .primary-btn, .ghost-btn {
-      border-radius:999px;
-      border:none;
-      padding:7px 14px;
+      color:#f9fafb;
       font-size:0.8rem;
+      padding:7px 10px;
+    }
+    input:focus, button:focus {
+      outline:none;
+      border-color:#22c55e;
+      box-shadow:0 0 0 1px rgba(34,197,94,0.35);
+    }
+    button {
       cursor:pointer;
-      font-weight:500;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:5px;
+      border:none;
       white-space:nowrap;
     }
     .primary-btn {
       background:linear-gradient(135deg,#22c55e,#16a34a);
+      border:none;
+      font-weight:500;
       color:#ecfdf5;
     }
-    .primary-btn:disabled {
-      opacity:0.35;
-      cursor:default;
-    }
+    .primary-btn:disabled { opacity:.35; cursor:default; }
     .ghost-btn {
       background:transparent;
       border:1px solid rgba(75,85,99,0.9);
       color:#9ca3af;
     }
-    .footer-row {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:6px;
-      font-size:0.75rem;
-      color:#6b7280;
-    }
+    .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
   </style>
 
-  <!-- Firebase compat SDK [web:1][web:6][web:9][web:18] -->
+  <!-- Firebase compat SDK [web:2] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -207,42 +162,33 @@
       <div class="state-chip" id="controllerState">Idle</div>
     </div>
 
-    <div class="content">
-      <div class="left">
-        <div class="slider-wrap">
-          <div class="slider-label">Pulse Strength</div>
-          <input
-            id="pulseSlider"
-            type="range"
-            min="0"
-            max="10"
-            step="1"
-            value="0"
-            class="vertical-slider"
-          />
-          <div class="level-display">Level: <span id="sliderLevel">0</span>/10</div>
-        </div>
+    <div class="row">
+      <div class="slider-card">
+        <div class="slider-label">Pulse Strength</div>
+        <input id="pulseSlider" type="range" min="0" max="10" step="1" value="0" />
+        <div class="level-display">Level: <span id="sliderLevel">0</span>/10</div>
       </div>
 
-      <div class="right">
-        <div class="timer-card">
-          <div class="timer-top">
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+        <div class="card">
+          <div class="card-header">
             <span>Session Timer</span>
-            <button id="stopSessionBtn" class="ghost-btn">Stop</button>
+            <button id="stopBtn" class="ghost-btn">Stop</button>
           </div>
           <div class="countdown" id="countdown">00:00</div>
-          <div class="session-name" id="currentSessionName">No active session</div>
+          <div class="session-meta" id="sessionInfo">No active session</div>
         </div>
 
-        <div class="timer-card">
-          <div class="timer-top">
-            <span>Available Sessions</span>
-            <button id="refreshBtn" class="ghost-btn">Refresh</button>
+        <div class="card">
+          <div class="card-header">
+            <span>Attach Session</span>
           </div>
-          <div class="sessions-list" id="sessionsList"></div>
-          <div class="footer-row">
-            <span>Tap a session to start.</span>
-            <button id="startSessionBtn" class="primary-btn" disabled>Start</button>
+          <div class="field-row">
+            <input id="sessionIdInput" type="text" placeholder="Enter session ID" />
+            <button id="attachBtn" class="primary-btn">Attach</button>
+          </div>
+          <div class="hint">
+            Session ID comes from receiver page when a new session is created.
           </div>
         </div>
       </div>
@@ -250,7 +196,7 @@
   </div>
 
   <script>
-    // TODO: same Firebase config as receiver.html [web:1][web:12]
+    // ضع نفس الإعدادات في الصفحتين [web:2]
     const firebaseConfig = {
     apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
     authDomain: "testapp-9b43c.firebaseapp.com",
@@ -265,109 +211,32 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const pulseRef = db.ref("device/pulseLevel");
-    const sessionRef = db.ref("device/session");
-    const sessionsRef = db.ref("device/sessions");
+    const pulseRef          = db.ref("device/pulseLevel");
+    const activeSessionRef  = db.ref("device/activeSession");
+    const sessionsRef       = db.ref("sessions");
 
-    const slider = document.getElementById("pulseSlider");
-    const sliderLevelEl = document.getElementById("sliderLevel");
+    const slider            = document.getElementById("pulseSlider");
+    const sliderLevelEl     = document.getElementById("sliderLevel");
     const controllerStateEl = document.getElementById("controllerState");
-    const countdownEl = document.getElementById("countdown");
-    const currentSessionNameEl = document.getElementById("currentSessionName");
-    const sessionsListEl = document.getElementById("sessionsList");
-    const startSessionBtn = document.getElementById("startSessionBtn");
-    const stopSessionBtn = document.getElementById("stopSessionBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
+    const countdownEl       = document.getElementById("countdown");
+    const sessionInfoEl     = document.getElementById("sessionInfo");
+    const sessionIdInput    = document.getElementById("sessionIdInput");
+    const attachBtn         = document.getElementById("attachBtn");
+    const stopBtn           = document.getElementById("stopBtn");
 
-    let sessionsCache = {};
-    let selectedSessionId = null;
-    let activeSessionId = null;
-    let localRemaining = 0;
+    let active = null;        // كائن الجلسة الفعالة
     let tickInterval = null;
+    let lockedSessionIds = new Set(); // جلسات انتهت ولا يسمح بإعادة تشغيلها
+
+    slider.disabled = true;   // مغلق حتى يتم إرفاق جلسة
 
     slider.addEventListener("input", () => {
       const value = Number(slider.value);
       sliderLevelEl.textContent = value;
-      if (controllerStateEl.textContent.toLowerCase() === "running") {
+      if (active && active.state === "running") {
         pulseRef.set(value);
       } else {
         pulseRef.set(0);
-      }
-    });
-
-    function renderSessions() {
-      sessionsListEl.innerHTML = "";
-      Object.keys(sessionsCache).forEach((key) => {
-        const s = sessionsCache[key];
-        const item = document.createElement("div");
-        item.className = "session-item";
-        if (key === selectedSessionId) item.classList.add("active");
-
-        const statusDotClass =
-          s.state === "active" ? "dot active" :
-          s.state === "finished" ? "dot finished" : "dot pending";
-
-        item.innerHTML = `
-          <div>
-            <div class="name">${s.name || "Session"}</div>
-            <div style="display:flex;align-items:center;margin-top:2px;font-size:0.72rem;color:#9ca3af;">
-              <div class="${statusDotClass} dot"></div>
-              <span>${s.state || "pending"}</span>
-            </div>
-          </div>
-          <div class="meta">
-            <span>${s.minutes || 0} min</span>
-          </div>
-        `;
-        item.addEventListener("click", () => {
-          selectedSessionId = key;
-          renderSessions();
-          startSessionBtn.disabled = false;
-        });
-        sessionsListEl.appendChild(item);
-      });
-    }
-
-    sessionsRef.on("value", (snap) => {
-      sessionsCache = snap.val() || {};
-      renderSessions();
-    });
-
-    sessionRef.on("value", (snap) => {
-      const data = snap.val();
-      if (!data) {
-        controllerStateEl.textContent = "Idle";
-        countdownEl.textContent = "00:00";
-        currentSessionNameEl.textContent = "No active session";
-        activeSessionId = null;
-        localRemaining = 0;
-        slider.disabled = true;
-        startSessionBtn.disabled = !selectedSessionId;
-        pulseRef.set(0);
-        if (tickInterval) {
-          clearInterval(tickInterval);
-          tickInterval = null;
-        }
-        return;
-      }
-
-      controllerStateEl.textContent = data.state === "running" ? "Running" : data.state ?? "Idle";
-      activeSessionId = data.id || null;
-      currentSessionNameEl.textContent = data.name ? ("Active • " + data.name) : "Active session";
-      localRemaining = data.remainingSeconds ?? 0;
-      updateCountdownText(localRemaining);
-
-      slider.disabled = data.state !== "running";
-
-      if (!tickInterval) {
-        tickInterval = setInterval(() => {
-          if (localRemaining > 0 && controllerStateEl.textContent.toLowerCase() === "running") {
-            localRemaining--;
-            updateCountdownText(localRemaining);
-          } else if (localRemaining <= 0 && controllerStateEl.textContent.toLowerCase() === "running") {
-            endSession();
-          }
-        }, 1000);
       }
     });
 
@@ -378,52 +247,93 @@
       countdownEl.textContent = m + ":" + s;
     }
 
-    async function startSession() {
-      if (!selectedSessionId || !sessionsCache[selectedSessionId]) return;
-      const s = sessionsCache[selectedSessionId];
-      const totalSeconds = (s.minutes || 0) * 60;
-      if (!totalSeconds) return;
+    // مراقبة الجلسة النشطة من Firebase
+    activeSessionRef.on("value", (snap) => {
+      const data = snap.val();
+      active = data;
 
-      const update = {
-        id: selectedSessionId,
-        name: s.name || "Session",
-        minutes: s.minutes || 0,
+      if (!data) {
+        controllerStateEl.textContent = "Idle";
+        sessionInfoEl.textContent = "No active session";
+        updateCountdownText(0);
+        slider.disabled = true;
+        pulseRef.set(0);
+        if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+        return;
+      }
+
+      updateCountdownText(data.remainingSeconds ?? 0);
+      sessionInfoEl.textContent = `Session: ${data.name || data.id} • ID: ${data.id}`;
+      slider.disabled = data.state === "running" && !lockedSessionIds.has(data.id);
+      controllerStateEl.textContent = data.state === "running" ? "Running" : data.state;
+
+      if (tickInterval) { clearInterval(tickInterval); }
+      tickInterval = setInterval(() => {
+        if (!active || active.state !== "running") return;
+        if (active.remainingSeconds <= 0) {
+          endSession();
+        } else {
+          active.remainingSeconds -= 1;
+          updateCountdownText(active.remainingSeconds);
+        }
+      }, 1000);
+    });
+
+    // إرفاق جلسة عن طريق ID
+    attachBtn.addEventListener("click", async () => {
+      const id = sessionIdInput.value.trim();
+      if (!id || lockedSessionIds.has(id)) return;
+
+      const snap = await sessionsRef.child(id).get();
+      if (!snap.exists()) {
+        alert("Session not found or already finished.");
+        return;
+      }
+      const session = snap.val();
+      if (session.state === "finished") {
+        lockedSessionIds.add(id);
+        alert("This session is already finished.");
+        return;
+      }
+
+      const totalSeconds = (session.minutes || 0) * 60;
+      const activeData = {
+        id,
+        name: session.name || "Session",
+        minutes: session.minutes || 0,
         state: "running",
         totalSeconds,
         remainingSeconds: totalSeconds,
         startedAt: Date.now()
       };
-      await sessionRef.set(update);
-      await sessionsRef.child(selectedSessionId).update({ state: "active" });
-      controllerStateEl.textContent = "Running";
+
+      await activeSessionRef.set(activeData);
+      await sessionsRef.child(id).update({ state: "active" });
       slider.disabled = false;
+      controllerStateEl.textContent = "Running";
       pulseRef.set(Number(slider.value));
-    }
+    });
 
     async function endSession() {
+      if (!active) return;
       controllerStateEl.textContent = "Finished";
       slider.disabled = true;
       pulseRef.set(0);
 
-      if (activeSessionId) {
-        await sessionsRef.child(activeSessionId).update({ state: "finished" });
-      }
-      await sessionRef.set(null);
+      const id = active.id;
+      lockedSessionIds.add(id);
+
+      // حذف بيانات الجلسة ومنع إعادة التشغيل [web:2][web:27]
+      await sessionsRef.child(id).remove();
+      await activeSessionRef.set(null);
+
+      active = null;
+      updateCountdownText(0);
+      sessionInfoEl.textContent = "Session finished";
     }
 
-    startSessionBtn.addEventListener("click", () => {
-      startSession();
-    });
-
-    stopSessionBtn.addEventListener("click", () => {
+    stopBtn.addEventListener("click", () => {
       endSession();
-    });
-
-    refreshBtn.addEventListener("click", () => {
-      sessionsRef.once("value").then((snap) => {
-        sessionsCache = snap.val() || {};
-        renderSessions();
-      });
     });
   </script>
 </body>
