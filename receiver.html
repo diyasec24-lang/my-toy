@@ -5,215 +5,161 @@
   <title>Pulse Receiver</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing:border-box; margin:0; padding:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     body {
-      background: radial-gradient(circle at top, #1f2933, #020617);
-      color: #e5e7eb;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: radial-gradient(circle at top,#1f2933,#020617);
+      color:#e5e7eb;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .app {
-      width: 100%;
-      max-width: 420px;
-      background: rgba(15, 23, 42, 0.96);
-      border-radius: 18px;
-      padding: 20px 18px 18px;
-      box-shadow: 0 18px 45px rgba(0,0,0,0.65);
-      border: 1px solid rgba(148,163,184,0.25);
+      width:100%;
+      max-width:420px;
+      background:rgba(15,23,42,0.96);
+      border-radius:18px;
+      padding:20px 18px 18px;
+      box-shadow:0 18px 45px rgba(0,0,0,0.65);
+      border:1px solid rgba(148,163,184,0.25);
     }
     .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:14px;
     }
-    .title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: .04em;
-    }
+    .title { font-size:1.1rem; font-weight:600; letter-spacing:.04em; }
     .status-pill {
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(34,197,94,0.12);
-      color: #4ade80;
-      border: 1px solid rgba(74,222,128,0.4);
+      font-size:0.75rem;
+      padding:4px 10px;
+      border-radius:999px;
+      background:rgba(34,197,94,0.12);
+      color:#4ade80;
+      border:1px solid rgba(74,222,128,0.4);
     }
+
     .card {
-      background: rgba(15,23,42,0.9);
-      border-radius: 14px;
-      padding: 14px 14px 12px;
-      border: 1px solid rgba(51,65,85,0.9);
-      margin-bottom: 12px;
+      border-radius:14px;
+      padding:12px;
+      border:1px solid rgba(55,65,81,0.9);
+      background:rgba(15,23,42,0.9);
+      margin-bottom:10px;
     }
     .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: #9ca3af;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:0.8rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:#9ca3af;
+      margin-bottom:8px;
     }
-    .pulse-value {
-      font-size: 2.4rem;
-      font-weight: 600;
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
+
+    /* موجة على Canvas [web:26][web:29][web:32] */
+    #waveCanvas {
+      width:100%;
+      height:140px;
+      border-radius:12px;
+      background:radial-gradient(circle at top,#020617,#020617);
+      border:1px solid rgba(30,64,175,0.6);
     }
-    .pulse-value span.unit {
-      font-size: 0.8rem;
-      color: #9ca3af;
-      text-transform: uppercase;
-    }
-    .pulse-bar-wrap {
-      margin-top: 8px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(31,41,55,1);
-      overflow: hidden;
-    }
-    .pulse-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
-      transition: width .2s ease-out;
-    }
+
     .session-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.8rem;
-      color: #9ca3af;
-      margin-top: 4px;
+      display:flex;
+      justify-content:space-between;
+      font-size:0.8rem;
+      margin-top:8px;
+      color:#9ca3af;
     }
-    .session-row strong {
-      color: #e5e7eb;
-      font-weight: 500;
-    }
-    .sessions-list {
-      max-height: 180px;
-      overflow-y: auto;
-      margin-top: 8px;
-    }
-    .session-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 9px;
-      margin-bottom: 6px;
-      border-radius: 10px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(55,65,81,0.9);
-      font-size: 0.78rem;
-    }
-    .session-item .name {
-      font-weight: 500;
-      color: #e5e7eb;
-    }
-    .session-item .meta {
-      color: #9ca3af;
-      display: flex;
-      gap: 10px;
-    }
-    .session-item .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      margin-right: 4px;
-    }
-    .dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-    .dot.pending { background: #eab308; }
-    .dot.finished { background: #6b7280; }
+    .session-row strong { color:#e5e7eb; }
+
     .form-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      display:flex;
+      gap:8px;
+      margin-top:8px;
     }
-    input, button, select {
-      border-radius: 999px;
-      border: 1px solid rgba(75,85,99,0.9);
-      background: rgba(15,23,42,0.9);
-      color: #f9fafb;
-      font-size: 0.8rem;
-      padding: 7px 10px;
+    input, button {
+      border-radius:999px;
+      border:1px solid rgba(75,85,99,0.9);
+      background:rgba(15,23,42,0.9);
+      color:#f9fafb;
+      font-size:0.8rem;
+      padding:7px 10px;
     }
-    input:focus, select:focus, button:focus {
-      outline: none;
-      border-color: #22c55e;
-      box-shadow: 0 0 0 1px rgba(34,197,94,0.35);
+    input:focus, button:focus {
+      outline:none;
+      border-color:#22c55e;
+      box-shadow:0 0 0 1px rgba(34,197,94,0.35);
     }
-    input[type="number"] { width: 100%; }
+    input[type="number"] { width:100%; }
     button {
-      cursor: pointer;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg,#22c55e,#16a34a);
-      padding-inline: 14px;
-      font-weight: 500;
-      white-space: nowrap;
+      cursor:pointer;
+      border:none;
+      white-space:nowrap;
     }
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
+    .primary-btn {
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      border:none;
+      font-weight:500;
+      color:#ecfdf5;
     }
-    .hint {
-      margin-top: 6px;
-      font-size: 0.7rem;
-      color: #6b7280;
+    .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
+    .id-badge {
+      font-size:0.78rem;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(30,64,175,0.3);
+      border:1px solid rgba(59,130,246,0.7);
+      color:#bfdbfe;
+      margin-left:6px;
     }
   </style>
-  <!-- Firebase v10 compat (Realtime Database) [web:1][web:6][web:9][web:18] -->
+
+  <!-- Firebase compat SDK [web:2] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="app">
     <div class="header">
-      <div class="title">Lush Pulse • Receiver</div>
+      <div class="title">
+        Lush Pulse • Receiver
+        <span id="currentSessionId" class="id-badge" style="display:none;"></span>
+      </div>
       <div class="status-pill" id="connectionStatus">LIVE</div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <span>Live Pulse</span>
-        <span id="activeSessionLabel">No active session</span>
+        <span>Live Wave</span>
+        <span id="sessionLabel">No active session</span>
       </div>
-      <div class="pulse-value">
-        <span id="pulseValue">0</span>
-        <span class="unit">level</span>
-      </div>
-      <div class="pulse-bar-wrap">
-        <div class="pulse-bar" id="pulseBar"></div>
-      </div>
+      <canvas id="waveCanvas"></canvas>
       <div class="session-row">
-        <span>Remaining: <strong id="remainingTime">00:00</strong></span>
-        <span>State: <strong id="sessionState">idle</strong></span>
+        <span>Pulse Level: <strong id="pulseText">0</strong>/10</span>
+        <span>Remaining: <strong id="remainingText">00:00</strong></span>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <span>Sessions</span>
-        <span>Schedule</span>
+        <span>Create Session</span>
+        <span id="createdIdLabel"></span>
       </div>
       <div class="form-row">
-        <input type="text" id="sessionName" placeholder="Session name (optional)" />
-        <input type="number" id="sessionMinutes" min="1" max="180" placeholder="Minutes" />
-        <button id="addSessionBtn">Add</button>
+        <input id="sessionName" type="text" placeholder="Session name (optional)" />
+        <input id="sessionMinutes" type="number" min="1" max="180" placeholder="Minutes" />
+        <button id="createBtn" class="primary-btn">Create</button>
       </div>
-      <div class="hint">New sessions will appear in the controller list in real time.</div>
-      <div class="sessions-list" id="sessionsList"></div>
+      <div class="hint">
+        A unique ID will be generated. Share it with the controller to start the session.
+      </div>
     </div>
   </div>
 
   <script>
-    // TODO: put your Firebase project config here [web:1][web:12]
     const firebaseConfig = {
     apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
     authDomain: "testapp-9b43c.firebaseapp.com",
@@ -224,96 +170,110 @@
     appId: "1:475089690708:web:f86d7436dfa74a96134dc1",
     measurementId: "G-FZCZQGZD5Y"
   };
-      
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const pulseRef = db.ref("device/pulseLevel");
-    const sessionRef = db.ref("device/session");
-    const sessionsRef = db.ref("device/sessions");
+    const pulseRef         = db.ref("device/pulseLevel");
+    const activeSessionRef = db.ref("device/activeSession");
+    const sessionsRef      = db.ref("sessions");
 
-    const pulseValueEl = document.getElementById("pulseValue");
-    const pulseBarEl = document.getElementById("pulseBar");
-    const remainingTimeEl = document.getElementById("remainingTime");
-    const sessionStateEl = document.getElementById("sessionState");
-    const activeSessionLabelEl = document.getElementById("activeSessionLabel");
     const connectionStatusEl = document.getElementById("connectionStatus");
+    const sessionLabelEl     = document.getElementById("sessionLabel");
+    const pulseTextEl        = document.getElementById("pulseText");
+    const remainingTextEl    = document.getElementById("remainingText");
+    const currentSessionIdEl = document.getElementById("currentSessionId");
+    const createdIdLabelEl   = document.getElementById("createdIdLabel");
+    const sessionNameInput   = document.getElementById("sessionName");
+    const sessionMinutesInput= document.getElementById("sessionMinutes");
+    const createBtn          = document.getElementById("createBtn");
 
-    const sessionNameInput = document.getElementById("sessionName");
-    const sessionMinutesInput = document.getElementById("sessionMinutes");
-    const addSessionBtn = document.getElementById("addSessionBtn");
-    const sessionsListEl = document.getElementById("sessionsList");
-
+    const canvas = document.getElementById("waveCanvas");
+    const ctx    = canvas.getContext("2d");
     let lastPulseTs = Date.now();
+    let pulseLevel  = 0;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width  = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // موجة بسيطة تعتمد على مستوى النبض (سعة أكبر = نبضات أعلى) [web:26][web:29][web:32]
+    let phase = 0;
+    function drawWave() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const centerY = h / 2;
+      const amp = 10 + pulseLevel * 4;
+      const freq = 0.03 + pulseLevel * 0.01;
+
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      for (let x = 0; x < w; x++) {
+        const y = centerY + Math.sin(x * freq + phase) * amp;
+        ctx.lineTo(x, y);
+      }
+      const gradient = ctx.createLinearGradient(0, 0, w, 0);
+      gradient.addColorStop(0, "#22c55e");
+      gradient.addColorStop(0.5, "#eab308");
+      gradient.addColorStop(1, "#ef4444");
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      phase += 0.12 + pulseLevel * 0.02;
+      requestAnimationFrame(drawWave);
+    }
+    requestAnimationFrame(drawWave);
 
     pulseRef.on("value", (snap) => {
-      const level = snap.val() ?? 0;
+      const val = snap.val() ?? 0;
+      pulseLevel = Math.max(0, Math.min(10, Number(val)));
+      pulseTextEl.textContent = pulseLevel.toFixed(0);
       lastPulseTs = Date.now();
-      const clamped = Math.max(0, Math.min(10, Number(level)));
-      pulseValueEl.textContent = clamped.toFixed(0);
-      pulseBarEl.style.width = (clamped * 10) + "%";
     });
 
-    sessionRef.on("value", (snap) => {
+    activeSessionRef.on("value", (snap) => {
       const data = snap.val();
       if (!data) {
-        sessionStateEl.textContent = "idle";
-        remainingTimeEl.textContent = "00:00";
-        activeSessionLabelEl.textContent = "No active session";
+        sessionLabelEl.textContent = "No active session";
+        remainingTextEl.textContent = "00:00";
+        currentSessionIdEl.style.display = "none";
         return;
       }
-      sessionStateEl.textContent = data.state ?? "idle";
-      activeSessionLabelEl.textContent = data.name ? ("Active • " + data.name) : "Active session";
-      if (typeof data.remainingSeconds === "number") {
-        const r = Math.max(0, data.remainingSeconds);
-        const m = String(Math.floor(r / 60)).padStart(2, "0");
-        const s = String(r % 60).padStart(2, "0");
-        remainingTimeEl.textContent = m + ":" + s;
-      }
+      sessionLabelEl.textContent = data.name ? `Active • ${data.name}` : "Active session";
+      currentSessionIdEl.textContent = data.id;
+      currentSessionIdEl.style.display = "inline-block";
+
+      const r = Math.max(0, data.remainingSeconds ?? 0);
+      const m = String(Math.floor(r / 60)).padStart(2, "0");
+      const s = String(r % 60).padStart(2, "0");
+      remainingTextEl.textContent = `${m}:${s}`;
     });
 
-    sessionsRef.on("value", (snap) => {
-      sessionsListEl.innerHTML = "";
-      const val = snap.val() || {};
-      Object.keys(val).forEach((key) => {
-        const s = val[key];
-        const item = document.createElement("div");
-        item.className = "session-item";
-        const statusDotClass =
-          s.state === "active" ? "dot active" :
-          s.state === "finished" ? "dot finished" : "dot pending";
-
-        item.innerHTML = `
-          <div>
-            <span class="name">${s.name || "Session"}</span>
-            <div style="display:flex;align-items:center;margin-top:2px;font-size:0.72rem;color:#9ca3af;">
-              <div class="${statusDotClass} dot"></div>
-              <span>${s.state || "pending"}</span>
-            </div>
-          </div>
-          <div class="meta">
-            <span>${s.minutes || 0} min</span>
-          </div>
-        `;
-        sessionsListEl.appendChild(item);
-      });
-    });
-
-    addSessionBtn.addEventListener("click", () => {
+    createBtn.addEventListener("click", async () => {
       const name = sessionNameInput.value.trim() || "Session";
       const minutes = parseInt(sessionMinutesInput.value, 10);
       if (!minutes || minutes <= 0) return;
+
       const newRef = sessionsRef.push();
-      newRef.set({
-        id: newRef.key,
+      const id = newRef.key; // ID الجلسة الفريد [web:2]
+      await newRef.set({
+        id,
         name,
         minutes,
         state: "pending",
         createdAt: Date.now()
       });
-      sessionMinutesInput.value = "";
+
+      createdIdLabelEl.textContent = `ID: ${id}`;
       sessionNameInput.value = "";
+      sessionMinutesInput.value = "";
     });
 
     setInterval(() => {
