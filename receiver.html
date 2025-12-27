@@ -1,566 +1,335 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receiver Dashboard 9999</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a0f;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            color: #e0e0e0;
-        }
-        
-        .container {
-            background: #1a1a2e;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(186, 85, 211, 0.3);
-            max-width: 900px;
-            width: 100%;
-            border: 1px solid #ba55d3;
-        }
-        
-        h1 {
-            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 32px;
-        }
-        
-        .id-section {
-            background: #2a2a3e;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border: 2px solid #ba55d3;
-        }
-        
-        .id-display {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .id-label {
-            color: #ba55d3;
-            font-weight: bold;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        
-        .id-value {
-            flex: 1;
-            background: #0a0a0f;
-            padding: 15px 20px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #ba55d3;
-            text-align: center;
-            letter-spacing: 2px;
-            border: 1px solid #ba55d3;
-            word-break: break-all;
-        }
-        
-        .copy-btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .copy-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(186, 85, 211, 0.5);
-        }
-        
-        .time-control {
-            margin-top: 20px;
-        }
-        
-        .time-label {
-            color: #9370db;
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        .time-input-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        input[type="number"] {
-            flex: 1;
-            padding: 12px 20px;
-            background: #0a0a0f;
-            border: 2px solid #ba55d3;
-            border-radius: 10px;
-            color: #e0e0e0;
-            font-size: 16px;
-            text-align: center;
-        }
-        
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #9370db;
-            box-shadow: 0 0 10px rgba(186, 85, 211, 0.3);
-        }
-        
-        .set-time-btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #ba55d3 0%, #9370db 100%);
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .set-time-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(186, 85, 211, 0.5);
-        }
-        
-        .status {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-        
-        .status.connected {
-            background: rgba(46, 125, 50, 0.3);
-            color: #81c784;
-            border: 1px solid #81c784;
-        }
-        
-        .status.waiting {
-            background: rgba(251, 140, 0, 0.3);
-            color: #ffb74d;
-            border: 1px solid #ffb74d;
-        }
-        
-        .status.ready {
-            background: rgba(33, 150, 243, 0.3);
-            color: #64b5f6;
-            border: 1px solid #64b5f6;
-        }
-        
-        .timer-display {
-            text-align: center;
-            font-size: 24px;
-            color: #ba55d3;
-            font-weight: bold;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #2a2a3e;
-            border-radius: 10px;
-            border: 1px solid #ba55d3;
-        }
-        
-        .chart-container {
-            background: #0a0a0f;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            height: 300px;
-            border: 2px solid #ba55d3;
-        }
-        
-        canvas {
-            width: 100%;
-            height: 100%;
-            border-radius: 10px;
-        }
-        
-        .current-value {
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .value-label {
-            color: #9370db;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        
-        .value-bar {
-            width: 100%;
-            height: 50px;
-            background: #2a2a3e;
-            border-radius: 25px;
-            overflow: hidden;
-            position: relative;
-            border: 2px solid #ba55d3;
-        }
-        
-        .value-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ba55d3 0%, #9370db 100%);
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 24px;
-        }
-        
-        .pattern-info {
-            text-align: center;
-            margin-top: 15px;
-            padding: 12px;
-            background: rgba(186, 85, 211, 0.2);
-            border-radius: 10px;
-            color: #ba55d3;
-            font-weight: bold;
-            display: none;
-            border: 1px solid #ba55d3;
-        }
-        
-        .pattern-info.active {
-            display: block;
-        }
-        
-        .info {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(186, 85, 211, 0.1);
-            border-radius: 10px;
-            font-size: 13px;
-            color: #9370db;
-            text-align: center;
-            border: 1px solid #ba55d3;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Pulse Receiver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body {
+      background: radial-gradient(circle at top, #1f2933, #020617);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(15, 23, 42, 0.96);
+      border-radius: 18px;
+      padding: 20px 18px 18px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.65);
+      border: 1px solid rgba(148,163,184,0.25);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .status-pill {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(34,197,94,0.12);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.4);
+    }
+    .card {
+      background: rgba(15,23,42,0.9);
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(51,65,85,0.9);
+      margin-bottom: 12px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: #9ca3af;
+    }
+    .pulse-value {
+      font-size: 2.4rem;
+      font-weight: 600;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .pulse-value span.unit {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+    }
+    .pulse-bar-wrap {
+      margin-top: 8px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(31,41,55,1);
+      overflow: hidden;
+    }
+    .pulse-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+      transition: width .2s ease-out;
+    }
+    .session-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+    .session-row strong {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+    .sessions-list {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+    .session-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 9px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(55,65,81,0.9);
+      font-size: 0.78rem;
+    }
+    .session-item .name {
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .session-item .meta {
+      color: #9ca3af;
+      display: flex;
+      gap: 10px;
+    }
+    .session-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      margin-right: 4px;
+    }
+    .dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    .dot.pending { background: #eab308; }
+    .dot.finished { background: #6b7280; }
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    input, button, select {
+      border-radius: 999px;
+      border: 1px solid rgba(75,85,99,0.9);
+      background: rgba(15,23,42,0.9);
+      color: #f9fafb;
+      font-size: 0.8rem;
+      padding: 7px 10px;
+    }
+    input:focus, select:focus, button:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.35);
+    }
+    input[type="number"] { width: 100%; }
+    button {
+      cursor: pointer;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg,#22c55e,#16a34a);
+      padding-inline: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .hint {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: #6b7280;
+    }
+  </style>
+  <!-- Firebase v10 compat (Realtime Database) [web:1][web:6][web:9][web:18] -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>📊 Receiver Dashboard</h1>
-        
-        <div class="id-section">
-            <div class="id-display">
-                <div style="flex: 1;">
-                    <div class="id-label">Your Connection ID</div>
-                    <div class="id-value" id="roomIdDisplay">Generating ID...</div>
-                </div>
-                <button class="copy-btn" onclick="copyRoomId()">📋 Copy ID</button>
-            </div>
-            
-            <div class="time-control">
-                <label class="time-label">Control Time Limit (minutes)</label>
-                <div class="time-input-group">
-                    <input type="number" id="timeLimit" min="1" max="120" value="30" placeholder="Minutes">
-                    <button class="set-time-btn" onclick="setTimeLimit()">Set Time</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="status waiting" id="status">⏳ Initializing connection...</div>
-        
-        <div class="timer-display" id="timerDisplay">Time Remaining: --:--</div>
-        
-        <div class="chart-container">
-            <canvas id="waveChart"></canvas>
-        </div>
-        
-        <div class="current-value">
-            <div class="value-label">Current Intensity</div>
-            <div class="value-bar">
-                <div class="value-fill" id="valueFill">0</div>
-            </div>
-        </div>
-        
-        <div class="pattern-info" id="patternInfo">🎵 Pattern Active: ---</div>
-        
-        <div class="info">
-            ℹ️ Share your Connection ID with the controller to establish connection
-        </div>
+  <div class="app">
+    <div class="header">
+      <div class="title">Lush Pulse • Receiver</div>
+      <div class="status-pill" id="connectionStatus">LIVE</div>
     </div>
 
-    <script>
-        let peer;
-        let conn;
-        let myId;
-        let currentTimeLimit = 30;
-        let timeRemaining = 0;
-        let timerInterval;
-        let controllerConnected = false;
-        
-        let canvas = document.getElementById('waveChart');
-        let ctx = canvas.getContext('2d');
-        let dataPoints = [];
-        let maxDataPoints = 100;
-        
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        
-        // Initialize PeerJS
-        function initPeer() {
-            const randomId = 'rx_' + Math.random().toString(36).substr(2, 9);
-            peer = new Peer(randomId, {
-                host: 'diyasec24-lang.github.io',
-                secure: true,
-                port: 443,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
-            });
-            
-            peer.on('open', function(id) {
-                myId = id;
-                document.getElementById('roomIdDisplay').textContent = id;
-                document.getElementById('status').textContent = '✅ Ready - Waiting for controller';
-                document.getElementById('status').className = 'status ready';
-            });
-            
-            peer.on('connection', function(connection) {
-                conn = connection;
-                controllerConnected = true;
-                
-                document.getElementById('status').textContent = '✅ Controller connected!';
-                document.getElementById('status').className = 'status connected';
-                
-                startTimer();
-                
-                // Send time remaining to controller
-                conn.send({
-                    type: 'time_update',
-                    timeRemaining: timeRemaining
-                });
-                
-                conn.on('data', function(data) {
-                    handleControlData(data);
-                });
-                
-                conn.on('close', function() {
-                    controllerConnected = false;
-                    document.getElementById('status').textContent = '⚠️ Controller disconnected';
-                    document.getElementById('status').className = 'status waiting';
-                });
-            });
-            
-            peer.on('error', function(err) {
-                console.error('PeerJS error:', err);
-                document.getElementById('status').textContent = '❌ Connection error - Retrying...';
-                document.getElementById('status').className = 'status waiting';
-                setTimeout(initPeer, 3000);
-            });
-        }
-        
-        function handleControlData(data) {
-            if (timeRemaining <= 0) return;
-            
-            if (data.type === 'control') {
-                updateValue(data.value);
-            } else if (data.type === 'pattern') {
-                executePattern(data.pattern);
-            }
-        }
-        
-        function copyRoomId() {
-            if (myId) {
-                navigator.clipboard.writeText(myId).then(() => {
-                    const btn = event.target;
-                    btn.textContent = '✓ Copied!';
-                    setTimeout(() => {
-                        btn.textContent = '📋 Copy ID';
-                    }, 2000);
-                });
-            }
-        }
-        
-        function setTimeLimit() {
-            const limit = parseInt(document.getElementById('timeLimit').value);
-            if (limit >= 1 && limit <= 120) {
-                currentTimeLimit = limit;
-                if (controllerConnected) {
-                    startTimer();
-                    sendTimeUpdate();
-                }
-                alert(`Time limit set to ${limit} minutes`);
-            }
-        }
-        
-        function sendTimeUpdate() {
-            if (conn && conn.open) {
-                conn.send({
-                    type: 'time_update',
-                    timeRemaining: timeRemaining
-                });
-            }
-        }
-        
-        function startTimer() {
-            clearInterval(timerInterval);
-            timeRemaining = currentTimeLimit * 60;
-            updateTimerDisplay();
-            sendTimeUpdate();
-            
-            timerInterval = setInterval(() => {
-                timeRemaining--;
-                updateTimerDisplay();
-                
-                if (timeRemaining % 5 === 0) {
-                    sendTimeUpdate();
-                }
-                
-                if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
-                    endSession();
-                }
-            }, 1000);
-        }
-        
-        function updateTimerDisplay() {
-            const minutes = Math.floor(timeRemaining / 60);
-            const seconds = timeRemaining % 60;
-            document.getElementById('timerDisplay').textContent = 
-                `Time Remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-        
-        function endSession() {
-            if (conn && conn.open) {
-                conn.send({ type: 'session_end' });
-            }
-            updateValue(0);
-            document.getElementById('status').textContent = '⏱️ Session time expired';
-            document.getElementById('status').className = 'status waiting';
-            controllerConnected = false;
-        }
-        
-        function updateValue(value) {
-            dataPoints.push(value);
-            if (dataPoints.length > maxDataPoints) {
-                dataPoints.shift();
-            }
-            
-            const valueFill = document.getElementById('valueFill');
-            const percentage = (value / 10) * 100;
-            valueFill.style.width = percentage + '%';
-            valueFill.textContent = value;
-            
-            drawChart();
-        }
-        
-        function drawChart() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.strokeStyle = '#ba55d3';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            
-            ctx.beginPath();
-            
-            const stepX = canvas.width / maxDataPoints;
-            const scaleY = canvas.height / 10;
-            
-            for (let i = 0; i < dataPoints.length; i++) {
-                const x = i * stepX;
-                const y = canvas.height - (dataPoints[i] * scaleY);
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            ctx.stroke();
-            
-            ctx.strokeStyle = 'rgba(186, 85, 211, 0.3)';
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.lineTo(0, canvas.height);
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(186, 85, 211, 0.1)';
-            ctx.fill();
-        }
-        
-        function executePattern(pattern) {
-            clearInterval(window.patternInterval);
-            const patternInfo = document.getElementById('patternInfo');
-            
-            switch(pattern) {
-                case 'pulse':
-                    patternInfo.textContent = '🎵 Pattern Active: Rapid Pulse';
-                    patternInfo.className = 'pattern-info active';
-                    window.patternInterval = setInterval(() => {
-                        updateValue(10);
-                        setTimeout(() => updateValue(0), 200);
-                    }, 500);
-                    break;
-                    
-                case 'wave':
-                    patternInfo.textContent = '🎵 Pattern Active: Wave';
-                    patternInfo.className = 'pattern-info active';
-                    let waveValue = 0;
-                    let waveDirection = 1;
-                    window.patternInterval = setInterval(() => {
-                        waveValue += waveDirection * 1;
-                        if (waveValue >= 10 || waveValue <= 0) {
-                            waveDirection *= -1;
-                        }
-                        updateValue(waveValue);
-                    }, 100);
-                    break;
-                    
-                case 'random':
-                    patternInfo.textContent = '🎵 Pattern Active: Random';
-                    patternInfo.className = 'pattern-info active';
-                    window.patternInterval = setInterval(() => {
-                        updateValue(Math.floor(Math.random() * 11));
-                    }, 300);
-                    break;
-                    
-                case 'stop':
-                    patternInfo.className = 'pattern-info';
-                    updateValue(0);
-                    break;
-            }
-        }
-        
-        window.addEventListener('resize', () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            drawChart();
-        });
-        
-        // Initialize on load
-        initPeer();
-    </script>
+    <div class="card">
+      <div class="card-header">
+        <span>Live Pulse</span>
+        <span id="activeSessionLabel">No active session</span>
+      </div>
+      <div class="pulse-value">
+        <span id="pulseValue">0</span>
+        <span class="unit">level</span>
+      </div>
+      <div class="pulse-bar-wrap">
+        <div class="pulse-bar" id="pulseBar"></div>
+      </div>
+      <div class="session-row">
+        <span>Remaining: <strong id="remainingTime">00:00</strong></span>
+        <span>State: <strong id="sessionState">idle</strong></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>Sessions</span>
+        <span>Schedule</span>
+      </div>
+      <div class="form-row">
+        <input type="text" id="sessionName" placeholder="Session name (optional)" />
+        <input type="number" id="sessionMinutes" min="1" max="180" placeholder="Minutes" />
+        <button id="addSessionBtn">Add</button>
+      </div>
+      <div class="hint">New sessions will appear in the controller list in real time.</div>
+      <div class="sessions-list" id="sessionsList"></div>
+    </div>
+  </div>
+
+  <script>
+    // TODO: put your Firebase project config here [web:1][web:12]
+    const firebaseConfig = {
+    apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
+    authDomain: "testapp-9b43c.firebaseapp.com",
+    databaseURL: "https://testapp-9b43c-default-rtdb.firebaseio.com",
+    projectId: "testapp-9b43c",
+    storageBucket: "testapp-9b43c.firebasestorage.app",
+    messagingSenderId: "475089690708",
+    appId: "1:475089690708:web:f86d7436dfa74a96134dc1",
+    measurementId: "G-FZCZQGZD5Y"
+  };
+      
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const pulseRef = db.ref("device/pulseLevel");
+    const sessionRef = db.ref("device/session");
+    const sessionsRef = db.ref("device/sessions");
+
+    const pulseValueEl = document.getElementById("pulseValue");
+    const pulseBarEl = document.getElementById("pulseBar");
+    const remainingTimeEl = document.getElementById("remainingTime");
+    const sessionStateEl = document.getElementById("sessionState");
+    const activeSessionLabelEl = document.getElementById("activeSessionLabel");
+    const connectionStatusEl = document.getElementById("connectionStatus");
+
+    const sessionNameInput = document.getElementById("sessionName");
+    const sessionMinutesInput = document.getElementById("sessionMinutes");
+    const addSessionBtn = document.getElementById("addSessionBtn");
+    const sessionsListEl = document.getElementById("sessionsList");
+
+    let lastPulseTs = Date.now();
+
+    pulseRef.on("value", (snap) => {
+      const level = snap.val() ?? 0;
+      lastPulseTs = Date.now();
+      const clamped = Math.max(0, Math.min(10, Number(level)));
+      pulseValueEl.textContent = clamped.toFixed(0);
+      pulseBarEl.style.width = (clamped * 10) + "%";
+    });
+
+    sessionRef.on("value", (snap) => {
+      const data = snap.val();
+      if (!data) {
+        sessionStateEl.textContent = "idle";
+        remainingTimeEl.textContent = "00:00";
+        activeSessionLabelEl.textContent = "No active session";
+        return;
+      }
+      sessionStateEl.textContent = data.state ?? "idle";
+      activeSessionLabelEl.textContent = data.name ? ("Active • " + data.name) : "Active session";
+      if (typeof data.remainingSeconds === "number") {
+        const r = Math.max(0, data.remainingSeconds);
+        const m = String(Math.floor(r / 60)).padStart(2, "0");
+        const s = String(r % 60).padStart(2, "0");
+        remainingTimeEl.textContent = m + ":" + s;
+      }
+    });
+
+    sessionsRef.on("value", (snap) => {
+      sessionsListEl.innerHTML = "";
+      const val = snap.val() || {};
+      Object.keys(val).forEach((key) => {
+        const s = val[key];
+        const item = document.createElement("div");
+        item.className = "session-item";
+        const statusDotClass =
+          s.state === "active" ? "dot active" :
+          s.state === "finished" ? "dot finished" : "dot pending";
+
+        item.innerHTML = `
+          <div>
+            <span class="name">${s.name || "Session"}</span>
+            <div style="display:flex;align-items:center;margin-top:2px;font-size:0.72rem;color:#9ca3af;">
+              <div class="${statusDotClass} dot"></div>
+              <span>${s.state || "pending"}</span>
+            </div>
+          </div>
+          <div class="meta">
+            <span>${s.minutes || 0} min</span>
+          </div>
+        `;
+        sessionsListEl.appendChild(item);
+      });
+    });
+
+    addSessionBtn.addEventListener("click", () => {
+      const name = sessionNameInput.value.trim() || "Session";
+      const minutes = parseInt(sessionMinutesInput.value, 10);
+      if (!minutes || minutes <= 0) return;
+      const newRef = sessionsRef.push();
+      newRef.set({
+        id: newRef.key,
+        name,
+        minutes,
+        state: "pending",
+        createdAt: Date.now()
+      });
+      sessionMinutesInput.value = "";
+      sessionNameInput.value = "";
+    });
+
+    setInterval(() => {
+      const delta = Date.now() - lastPulseTs;
+      if (delta > 6000) {
+        connectionStatusEl.textContent = "OFFLINE";
+        connectionStatusEl.style.background = "rgba(239,68,68,0.12)";
+        connectionStatusEl.style.color = "#f87171";
+        connectionStatusEl.style.borderColor = "rgba(248,113,113,0.5)";
+      } else {
+        connectionStatusEl.textContent = "LIVE";
+        connectionStatusEl.style.background = "rgba(34,197,94,0.12)";
+        connectionStatusEl.style.color = "#4ade80";
+        connectionStatusEl.style.borderColor = "rgba(74,222,128,0.4)";
+      }
+    }, 3000);
+  </script>
 </body>
 </html>
