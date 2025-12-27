@@ -61,26 +61,27 @@
       margin-bottom:10px;
     }
 
-    /* سلايدر عمودي حقيقي [web:21][web:24] */
+    /* سلايدر عمودي حقيقي لأعلى/أسفل [web:21][web:24] */
     #pulseSlider {
+      writing-mode: vertical-lr;
+      direction: rtl;
       -webkit-appearance: slider-vertical;
-      writing-mode: bt-lr;
-      width:36px;
-      height:170px;
-      background:transparent;
-      padding:0;
+      width: 36px;
+      height: 180px;
+      background: transparent;
+      padding: 0;
+    }
+    #pulseSlider::-webkit-slider-runnable-track {
+      background: linear-gradient(#22c55e,#eab308,#ef4444);
+      border-radius: 999px;
     }
     #pulseSlider::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width:18px;
-      height:18px;
-      border-radius:50%;
-      background:#22c55e;
-      box-shadow:0 0 10px rgba(34,197,94,0.9);
-    }
-    #pulseSlider::-webkit-slider-runnable-track {
-      background:linear-gradient(#22c55e,#eab308,#ef4444);
-      border-radius:999px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34,197,94,0.9);
     }
     input[type=range] { accent-color:#22c55e; }
 
@@ -151,7 +152,7 @@
     .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
   </style>
 
-  <!-- Firebase compat SDK [web:2] -->
+  <!-- Firebase compat SDK [web:1][web:20] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -165,7 +166,7 @@
     <div class="row">
       <div class="slider-card">
         <div class="slider-label">Pulse Strength</div>
-        <input id="pulseSlider" type="range" min="0" max="10" step="1" value="0" />
+        <input id="pulseSlider" type="range" min="0" max="10" step="1" value="0" orient="vertical" />
         <div class="level-display">Level: <span id="sliderLevel">0</span>/10</div>
       </div>
 
@@ -196,7 +197,7 @@
   </div>
 
   <script>
-    // ضع نفس الإعدادات في الصفحتين [web:2]
+    // نفس الإعدادات في الصفحتين [web:1]
     const firebaseConfig = {
     apiKey: "AIzaSyCSQRo8ee2Dj26J0PQyQsosLfkNDw4Lni0",
     authDomain: "testapp-9b43c.firebaseapp.com",
@@ -224,16 +225,16 @@
     const attachBtn         = document.getElementById("attachBtn");
     const stopBtn           = document.getElementById("stopBtn");
 
-    let active = null;        // كائن الجلسة الفعالة
+    let active = null;
     let tickInterval = null;
-    let lockedSessionIds = new Set(); // جلسات انتهت ولا يسمح بإعادة تشغيلها
+    let lockedSessionIds = new Set();
 
-    slider.disabled = true;   // مغلق حتى يتم إرفاق جلسة
+    slider.disabled = true;
 
     slider.addEventListener("input", () => {
       const value = Number(slider.value);
       sliderLevelEl.textContent = value;
-      if (active && active.state === "running") {
+      if (active && active.state === "running" && !lockedSessionIds.has(active.id)) {
         pulseRef.set(value);
       } else {
         pulseRef.set(0);
@@ -247,7 +248,6 @@
       countdownEl.textContent = m + ":" + s;
     }
 
-    // مراقبة الجلسة النشطة من Firebase
     activeSessionRef.on("value", (snap) => {
       const data = snap.val();
       active = data;
@@ -264,7 +264,7 @@
 
       updateCountdownText(data.remainingSeconds ?? 0);
       sessionInfoEl.textContent = `Session: ${data.name || data.id} • ID: ${data.id}`;
-      slider.disabled = data.state === "running" && !lockedSessionIds.has(data.id);
+      slider.disabled = data.state !== "running" || lockedSessionIds.has(data.id);
       controllerStateEl.textContent = data.state === "running" ? "Running" : data.state;
 
       if (tickInterval) { clearInterval(tickInterval); }
@@ -279,7 +279,6 @@
       }, 1000);
     });
 
-    // إرفاق جلسة عن طريق ID
     attachBtn.addEventListener("click", async () => {
       const id = sessionIdInput.value.trim();
       if (!id || lockedSessionIds.has(id)) return;
@@ -309,6 +308,7 @@
 
       await activeSessionRef.set(activeData);
       await sessionsRef.child(id).update({ state: "active" });
+
       slider.disabled = false;
       controllerStateEl.textContent = "Running";
       pulseRef.set(Number(slider.value));
@@ -316,6 +316,7 @@
 
     async function endSession() {
       if (!active) return;
+
       controllerStateEl.textContent = "Finished";
       slider.disabled = true;
       pulseRef.set(0);
@@ -323,13 +324,17 @@
       const id = active.id;
       lockedSessionIds.add(id);
 
-      // حذف بيانات الجلسة ومنع إعادة التشغيل [web:2][web:27]
       await sessionsRef.child(id).remove();
       await activeSessionRef.set(null);
 
       active = null;
       updateCountdownText(0);
       sessionInfoEl.textContent = "Session finished";
+
+      // ريفريش تلقائي بعد ثانيتين [web:66][web:74]
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     }
 
     stopBtn.addEventListener("click", () => {
