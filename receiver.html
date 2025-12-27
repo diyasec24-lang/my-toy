@@ -38,6 +38,15 @@
       color:#4ade80;
       border:1px solid rgba(74,222,128,0.4);
     }
+    .id-badge {
+      font-size:0.78rem;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(236,72,153,0.15);
+      border:1px solid rgba(236,72,153,0.8);
+      color:#f9a8d4;
+      margin-left:6px;
+    }
 
     .card {
       border-radius:14px;
@@ -57,12 +66,11 @@
       margin-bottom:8px;
     }
 
-    /* موجة على Canvas [web:26][web:29][web:32] */
     #waveCanvas {
       width:100%;
       height:140px;
       border-radius:12px;
-      background:radial-gradient(circle at top,#020617,#020617);
+      background:#020617;
       border:1px solid rgba(30,64,175,0.6);
     }
 
@@ -106,18 +114,9 @@
       color:#ecfdf5;
     }
     .hint { font-size:0.72rem; color:#6b7280; margin-top:4px; }
-    .id-badge {
-      font-size:0.78rem;
-      padding:4px 8px;
-      border-radius:999px;
-      background:rgba(30,64,175,0.3);
-      border:1px solid rgba(59,130,246,0.7);
-      color:#bfdbfe;
-      margin-left:6px;
-    }
   </style>
 
-  <!-- Firebase compat SDK [web:2] -->
+  <!-- Firebase compat SDK [web:1][web:20] -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
@@ -170,6 +169,7 @@
     appId: "1:475089690708:web:f86d7436dfa74a96134dc1",
     measurementId: "G-FZCZQGZD5Y"
   };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -201,32 +201,50 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
 
-    // موجة بسيطة تعتمد على مستوى النبض (سعة أكبر = نبضات أعلى) [web:26][web:29][web:32]
+    // موجة ناعمة مع نقطة في النهاية (قريبة من شكل Lush) [web:59][web:60][web:63]
     let phase = 0;
     function drawWave() {
       const w = canvas.width / window.devicePixelRatio;
       const h = canvas.height / window.devicePixelRatio;
       ctx.clearRect(0, 0, w, h);
 
-      const centerY = h / 2;
-      const amp = 10 + pulseLevel * 4;
-      const freq = 0.03 + pulseLevel * 0.01;
+      const centerY = h * 0.55;
+      const amplitude = 6 + pulseLevel * 3;
+      const wavelength = 40;
+      const speed = 0.06 + pulseLevel * 0.02;
 
       ctx.beginPath();
-      ctx.moveTo(0, centerY);
-      for (let x = 0; x < w; x++) {
-        const y = centerY + Math.sin(x * freq + phase) * amp;
-        ctx.lineTo(x, y);
+      let lastX = 0, lastY = centerY;
+
+      for (let x = 0; x <= w; x += 2) {
+        const progress = x / w;
+        const envelope = 0.4 + 0.6 * progress;
+        const y = centerY + Math.sin((x / wavelength) * Math.PI * 2 + phase) * amplitude * envelope;
+
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+
+        lastX = x;
+        lastY = y;
       }
-      const gradient = ctx.createLinearGradient(0, 0, w, 0);
-      gradient.addColorStop(0, "#22c55e");
-      gradient.addColorStop(0.5, "#eab308");
-      gradient.addColorStop(1, "#ef4444");
+
+      const gradient = ctx.createLinearGradient(0,0,w,0);
+      gradient.addColorStop(0, "#ec4899");
+      gradient.addColorStop(1, "#f97316");
       ctx.strokeStyle = gradient;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
       ctx.stroke();
 
-      phase += 0.12 + pulseLevel * 0.02;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#ec4899";
+      ctx.shadowColor = "rgba(236,72,153,0.9)";
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      phase += speed;
       requestAnimationFrame(drawWave);
     }
     requestAnimationFrame(drawWave);
@@ -262,7 +280,7 @@
       if (!minutes || minutes <= 0) return;
 
       const newRef = sessionsRef.push();
-      const id = newRef.key; // ID الجلسة الفريد [web:2]
+      const id = newRef.key;
       await newRef.set({
         id,
         name,
